@@ -15,7 +15,7 @@
               placeholder="例如：寻找一种用于航空航天的高性能碳纤维复合材料，要求耐高温300度以上..."
               class="search-input"
               resize="none"
-              @keyup.enter="onMatch"
+              @keydown.enter.prevent="handleEnterKey"
             />
             <div class="input-glow"></div>
           </div>
@@ -500,6 +500,16 @@ const getStatusType = (status: string) => {
     case 'PENDING_REVIEW': return 'status-pending';
     default: return 'status-default';
   }
+}
+
+const handleEnterKey = (e: KeyboardEvent) => {
+  if (e.shiftKey) {
+    // Allow default behavior (new line)
+    return
+  }
+  // Prevent default (new line) and trigger search
+  e.preventDefault()
+  onMatch()
 }
 
 const onMatch = async () => {

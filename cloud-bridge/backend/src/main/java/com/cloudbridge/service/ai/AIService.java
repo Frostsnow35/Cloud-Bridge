@@ -46,14 +46,22 @@ public class AIService {
         String safeMessage = message != null ? message.replace("%", "%%") : "";
 
         String prompt = String.format(
-            "你是一个‘云桥’技术成果转化平台的智能助手。请分析用户的输入，判断意图并返回JSON格式的响应。\n" +
+            "你是一个‘云桥’技术成果转化平台的智能导航助手。请分析用户的输入，判断意图并返回JSON格式的响应。\n" +
             "用户输入：\"%s\"\n" +
+            "**核心原则（Boundaries）**：\n" +
+            "1. **角色定位**：你仅负责导航和指引，**不进行决策**。\n" +
+            "2. **拒绝回答**：\n" +
+            "   - **禁止**分析成果优劣或进行对比（如“A和B哪个好”）。\n" +
+            "   - **禁止**回答非科技成果转化领域的通用话题（如天气、政治、娱乐）。\n" +
+            "   - **拒答话术**：必须委婉并引导回业务。例如：“我专注于为您链接技术资源，这个问题我不太了解，不过我可以帮您查找相关的技术成果。”\n" +
+            "3. **术语解释**：如果用户询问技术术语（如“什么是石墨烯”），请简要解释，并在末尾强制追加声明：“（由AI生成，不代表对任何成果的解释）”。\n" +
+            "\n" +
             "**任务**：\n" +
             "1. 判断用户意图（Intent）：\n" +
-            "   - NAVIGATE: 用户想要跳转到某个功能页面（如搜索、匹配、发布）。\n" +
+            "   - NAVIGATE: 用户想要跳转到某个功能页面（包含私有数据页面）。\n" +
             "   - GUIDANCE: 用户询问如何使用平台功能（如“怎么发布需求”）。\n" +
             "   - FEEDBACK: 用户想要反馈问题或Bug。\n" +
-            "   - CHAT: 普通闲聊或无关话题。\n" +
+            "   - CHAT: 普通闲聊、术语解释或**拒答场景**。\n" +
             "2. 生成回复（Reply）：亲切、专业的文本回复。\n" +
             "3. 生成操作（Action）：仅在NAVIGATE或FEEDBACK时需要。\n" +
             "\n" +
@@ -70,14 +78,19 @@ public class AIService {
             "- 发布需求 -> /needs/publish\n" +
             "- 个人中心、我的主页 -> /profile\n" +
             "- 首页 -> /\n" +
+            "**私有数据路由（需鉴权）**：\n" +
+            "- 我的需求、我的发布 -> /profile/my-needs\n" +
+            "- 我的成果 -> /profile/my-achievements\n" +
+            "- 我的申请、审批进度 -> /profile/applications\n" +
+            "- 我的收藏、关注 -> /profile/collections\n" +
             "\n" +
             "**输出格式示例**：\n" +
             "1. 跳转示例：\n" +
             "   {\"intent\": \"NAVIGATE\", \"reply\": \"好的，正在为您查找碳纤维相关技术...\", \"action\": {\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/market\", \"query\": {\"keyword\": \"碳纤维\"}}}}\n" +
-            "2. 反馈示例：\n" +
-            "   {\"intent\": \"FEEDBACK\", \"reply\": \"收到，请填写以下表单反馈您的问题，我们会尽快处理。\", \"action\": {\"type\": \"OPEN_FEEDBACK_FORM\"}}\n" +
-            "3. 指引示例：\n" +
-            "   {\"intent\": \"GUIDANCE\", \"reply\": \"您可以点击顶部导航栏的‘需求大厅’，然后点击右上角的‘发布需求’按钮来提交您的需求。\"}\n" +
+            "2. 拒答示例：\n" +
+            "   {\"intent\": \"CHAT\", \"reply\": \"这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？\"}\n" +
+            "3. 术语解释示例：\n" +
+            "   {\"intent\": \"CHAT\", \"reply\": \"石墨烯是一种由碳原子构成的二维晶体...（由AI生成，不代表对任何成果的解释）\"}\n" +
             "\n" +
             "请严格只返回JSON字符串，不要包含Markdown标记（如```json）。",
             safeMessage
@@ -114,10 +127,29 @@ public class AIService {
             intent = "NAVIGATE";
             reply = "您可以前往需求大厅发布需求。";
             actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/needs/add\"}}";
+        } else if (message.contains("我的需求") || message.contains("我的发布")) {
+            intent = "NAVIGATE";
+            reply = "正在为您跳转到我的需求管理页面...";
+            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/my-needs\"}}";
+        } else if (message.contains("我的成果")) {
+            intent = "NAVIGATE";
+            reply = "正在为您跳转到我的成果管理页面...";
+            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/my-achievements\"}}";
+        } else if (message.contains("申请") || message.contains("审批")) {
+            intent = "NAVIGATE";
+            reply = "正在为您跳转到申请记录页面...";
+            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/applications\"}}";
+        } else if (message.contains("收藏") || message.contains("关注")) {
+            intent = "NAVIGATE";
+            reply = "正在为您跳转到我的收藏页面...";
+            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/collections\"}}";
         } else if (message.contains("bug") || message.contains("反馈") || message.contains("问题")) {
             intent = "FEEDBACK";
             reply = "请填写反馈表单。";
             actionJson = "{\"type\": \"OPEN_FEEDBACK_FORM\"}";
+        } else if (message.contains("天气") || message.contains("对比") || message.contains("好不好")) {
+            intent = "CHAT";
+            reply = "这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？";
         }
 
         return String.format(
@@ -233,9 +265,15 @@ public class AIService {
             "%s\n" +
             "\n" +
             "**评分规则**（必须严格遵守）：\n" +
-            "1. **完全不匹配 (0分)**：核心领域不同，或技术目标完全无关（如：'脑机接口' vs '工业检测'）。\n" +
-            "2. **弱匹配 (1-50分)**：领域相同，但应用场景差异巨大（如：'医疗康复' vs '手术机器人'）。\n" +
-            "3. **强匹配 (60-100分)**：子领域、应用场景、技术目标均高度吻合（语义模糊匹配即可）。\n" +
+            "1. **完全不匹配 (0分)**：\n" +
+            "   - 核心领域不同（如'人工智能' vs '新材料'）。\n" +
+            "   - 技术目标完全冲突（如'心脏病治疗' vs '骨骼修复'，即使同属医疗领域）。\n" +
+            "   - **注意**：如果需求是'心脏病'，而成果是'人工骨'，必须给0分。\n" +
+            "2. **弱匹配 (1-50分)**：\n" +
+            "   - 领域相同，但具体应用场景不同。\n" +
+            "   - 关键词部分重叠但核心痛点未解决。\n" +
+            "3. **强匹配 (60-100分)**：\n" +
+            "   - 子领域、应用场景、技术目标均高度吻合。\n" +
             "\n" +
             "**任务**：\n" +
             "请返回一个JSON对象，Key为成果ID，Value为0-100的评分。\n" +
@@ -367,7 +405,7 @@ public class AIService {
     public String generateResourceGraph(String type, String id) {
         // 1. Get the target entity
         String indexName = type.toLowerCase() + "s"; // simple pluralization
-        if (indexName.endsWith("ss")) indexName = indexName.substring(0, indexName.length() - 1); // fix 'patentss' if type is 'patents'
+        if (indexName.endsWith("ss")) indexName = indexName.substring(0, indexName.length() - 1);
         if (type.equals("policy")) indexName = "policies";
         if (type.equals("fund")) indexName = "funds";
         if (type.equals("expert")) indexName = "experts";
@@ -378,7 +416,7 @@ public class AIService {
         String entityJson = searchService.getById(indexName, id);
         if (entityJson == null) return "{\"error\": \"Entity not found\"}";
         
-        // 2. Extract key info for searching related entities
+        // 2. Extract key info
         String keyword = "";
         try {
             JsonNode node = objectMapper.readTree(entityJson);
@@ -392,34 +430,38 @@ public class AIService {
         // 3. Search related entities
         java.util.Map<String, List<String>> related = searchService.searchAll(keyword);
         
-        // 4. Use AI to construct the graph JSON
+        // 4. Use AI to construct an EXPLANATORY graph
         StringBuilder relatedContext = new StringBuilder();
         int count = 0;
         for (Map.Entry<String, List<String>> entry : related.entrySet()) {
             for (String item : entry.getValue()) {
-                if (count++ > 15) break; // Limit context size
+                if (count++ > 10) break; // Limit context size
                 relatedContext.append(entry.getKey()).append(": ").append(item).append("\n");
             }
         }
         
         String prompt = String.format(
-            "请基于核心实体和相关搜索结果，构建一个资源关联图谱（JSON）。\n" +
+            "请基于核心实体和相关资源，构建一个**解释型关联图谱（Explanatory Graph）**。\n" +
             "核心实体 (%s): %s\n" +
             "相关资源:\n%s\n" +
-            "任务：\n" +
-            "1. 将核心实体作为根节点。\n" +
-            "2. 从相关资源中挑选最相关的5-8个实体作为子节点。\n" +
-            "3. 确定节点间的关系类型 (e.g., 'SUPPORTED_BY', 'RESEARCHED_BY', 'OWNED_BY', 'RELATED_TO').\n" +
-            "4. 返回符合 ECharts Graph 数据格式的 JSON: { \"nodes\": [{ \"id\": \"...\", \"name\": \"...\", \"category\": \"...\" }], \"links\": [{ \"source\": \"...\", \"target\": \"...\", \"name\": \"...\" }] }\n" +
+            "**任务**：\n" +
+            "1. 构建一个逻辑清晰的图谱，解释**为什么**这些资源与核心实体相关。\n" +
+            "2. **节点类型**：\n" +
+            "   - Core (核心实体)\n" +
+            "   - KeyTech (关键技术点/子领域)\n" +
+            "   - Resource (匹配的资源)\n" +
+            "3. **路径结构**：Core -> [NEEDS/USES] -> KeyTech -> [PROVIDED_BY/SUPPORTED_BY] -> Resource\n" +
+            "4. **严格过滤**：只保留逻辑强相关的节点，去除无关的噪声节点。\n" +
+            "5. 返回符合 ECharts Graph 数据格式的 JSON: { \"nodes\": [{ \"id\": \"...\", \"name\": \"...\", \"category\": \"Core/KeyTech/Resource\" }], \"links\": [{ \"source\": \"...\", \"target\": \"...\", \"name\": \"NEEDS/USES/...\" }] }\n" +
             "只返回JSON，不要Markdown。",
             type, entityJson.replace("%", "%%"), relatedContext.toString().replace("%", "%%")
         );
         
         AIRequest request = new AIRequest();
         request.setModel(modelName);
-        request.setTemperature(0.2);
+        request.setTemperature(0.1); // Low temp for strict logic
         request.setMessages(Arrays.asList(
-            new AIRequest.Message("system", "You are a data visualization expert."),
+            new AIRequest.Message("system", "You are a logic visualization expert."),
             new AIRequest.Message("user", prompt)
         ));
         

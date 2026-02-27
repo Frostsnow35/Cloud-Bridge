@@ -252,9 +252,35 @@ public class MatchingService {
         
         result.put("matches", matches);
 
-        // 6. Recommendations (Simple logic remains)
+        // 6. Recommendations (Guess You Like)
         List<Map<String, Object>> recommendations = new ArrayList<>();
-        // ... (Keep existing recommendation logic if needed, or simplify)
+        
+        // Find achievements in the same field but NOT in the top strict matches
+        // Base recommendation on Field + Popularity (Mock popularity by ID for now or random)
+        if (effectiveField != null && !effectiveField.isEmpty()) {
+            List<Achievement> recCandidates = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
+            
+            // Exclude already matched
+            Set<Long> matchedIds = matches.stream().map(m -> (Long)m.get("id")).collect(Collectors.toSet());
+            
+            recCandidates = recCandidates.stream()
+                .filter(a -> !matchedIds.contains(a.getId()))
+                .limit(6) // Limit recommendations
+                .collect(Collectors.toList());
+                
+            for (Achievement a : recCandidates) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", a.getId());
+                map.put("title", a.getTitle());
+                map.put("description", a.getDescription());
+                map.put("field", a.getField());
+                map.put("maturity", a.getMaturity());
+                map.put("price", a.getPrice());
+                map.put("status", a.getStatus() != null ? a.getStatus().toString() : "PUBLISHED");
+                map.put("score", 50); // Base score for domain match
+                recommendations.add(map);
+            }
+        }
         
         result.put("recommendations", recommendations);
         result.put("relatedKeywords", relatedKeywords);
@@ -318,29 +344,36 @@ public class MatchingService {
                     
                     String achId = "ach_" + a.getId();
                     
-                    if (!existingIds.contains(achId)) {
-                        ObjectNode achNode = objectMapper.createObjectNode();
-                        achNode.put("id", achId);
-                        achNode.put("label", a.getTitle().length() > 8 ? a.getTitle().substring(0, 8) + "..." : a.getTitle());
-                        achNode.put("fullTitle", a.getTitle());
-                        achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
-                        achNode.put("type", "Achievement");
+                    // STRICT FILTER: Only connect if score is high enough (strict semantic match)
+                    // Use scoredMatches map to check score. If score < 20, do NOT connect in graph.
+                    ScoredAchievement scored = scoredMatches.get(a.getId());
+                    boolean isStrongMatch = scored != null && scored.getScore() >= 40; // Threshold for graph connection
+                    
+                    if (isStrongMatch) {
+                        if (!existingIds.contains(achId)) {
+                            ObjectNode achNode = objectMapper.createObjectNode();
+                            achNode.put("id", achId);
+                            achNode.put("label", a.getTitle().length() > 8 ? a.getTitle().substring(0, 8) + "..." : a.getTitle());
+                            achNode.put("fullTitle", a.getTitle());
+                            achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
+                            achNode.put("type", "Achievement");
+                            
+                            ((ArrayNode)nodes).add(achNode);
+                            existingIds.add(achId);
+                        }
+
+                        ObjectNode rel = objectMapper.createObjectNode();
+                        rel.put("source", nodeId);
+                        rel.put("target", achId);
+                        rel.put("type", "MATCHES");
+                        ((ArrayNode)relationships).add(rel);
                         
-                        ((ArrayNode)nodes).add(achNode);
-                        existingIds.add(achId);
-                        
-                        addScore(scoredMatches, a, SCORE_GRAPH_MATCH, filterField);
+                        count++;
                     } else {
+                         // Even if not in graph, it contributes score if matched via graph logic (keyword)
+                         // But we want to avoid graph clutter. So we only add score, not node.
                         addScore(scoredMatches, a, SCORE_GRAPH_MATCH, filterField);
                     }
-
-                    ObjectNode rel = objectMapper.createObjectNode();
-                    rel.put("source", nodeId);
-                    rel.put("target", achId);
-                    rel.put("type", "MATCHES");
-                    ((ArrayNode)relationships).add(rel);
-                    
-                    count++;
                 }
             }
         }

@@ -62,13 +62,33 @@
             </el-col>
           </el-row>
           
-          <el-form-item label="专利信息" prop="patentInfo">
+          <el-form-item label="专利信息 (可选)" prop="patentInfo">
             <el-input 
               v-model="form.patentInfo" 
               type="textarea" 
               :rows="3" 
               placeholder="请输入专利号或相关知识产权描述" 
             />
+          </el-form-item>
+
+          <el-form-item label="附件上传 (可选)" prop="files">
+             <el-upload
+                class="upload-demo"
+                drag
+                action="/api/upload/achievement"
+                :auto-upload="false"
+                multiple
+              >
+                <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                <div class="el-upload__text">
+                  拖拽文件到此处或 <em>点击上传</em>
+                </div>
+                <template #tip>
+                  <div class="el-upload__tip">
+                    支持 PDF/Word/图片 格式，单个文件不超过 10MB
+                  </div>
+                </template>
+              </el-upload>
           </el-form-item>
 
           <el-form-item label="应用案例" prop="applicationCases">
@@ -133,7 +153,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { InfoFilled, Tools, School } from '@element-plus/icons-vue'
+import { InfoFilled, Tools, School, UploadFilled } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { useUserStore } from '../stores/user'
 
