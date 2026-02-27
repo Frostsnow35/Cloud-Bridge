@@ -29,6 +29,7 @@
           <el-menu-item index="/libraries/equipments">设备库</el-menu-item>
           <el-menu-item index="/libraries/patents">专利库</el-menu-item>
           <el-menu-item index="/libraries/enterprises">企业库</el-menu-item>
+          <el-menu-item index="/libraries/public_platforms">公共平台</el-menu-item>
         </el-sub-menu>
 
         <el-menu-item index="/match">智能匹配</el-menu-item>

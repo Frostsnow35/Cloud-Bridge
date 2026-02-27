@@ -231,7 +231,21 @@ const actionButtonText = computed(() => {
 })
 
 const handleAction = () => {
-    ElMessage.success('请求已提交，请留意消息通知')
+    if (category.value === 'public_platforms') {
+        const query = encodeURIComponent(item.value?.name || '')
+        const searchUrl = `https://www.baiyun.gov.cn/so/s?qt=${query}`
+        
+        ElMessage.success({
+            message: '正在为您跳转至广州市白云区政府数据开放平台...',
+            duration: 3000
+        })
+        
+        setTimeout(() => {
+            window.open(searchUrl, '_blank')
+        }, 1500)
+    } else {
+        ElMessage.success('请求已提交，请留意消息通知')
+    }
 }
 
 const handleShare = () => {

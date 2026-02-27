@@ -28,7 +28,10 @@ public class LibraryController {
             @PathVariable String category,
             @RequestParam(required = false) String keyword
     ) {
-        return searchService.search(category, keyword);
+        System.err.println("=== LibraryController: Search request for category: " + category + ", keyword: " + keyword);
+        List<String> results = searchService.search(category, keyword);
+        System.err.println("=== LibraryController: Search results count: " + results.size());
+        return results;
     }
 
     /**

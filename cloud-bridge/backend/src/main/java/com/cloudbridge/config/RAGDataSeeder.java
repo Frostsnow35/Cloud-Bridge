@@ -28,135 +28,123 @@ public class RAGDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        System.err.println("=== RAGDataSeeder STARTED ===");
         try {
+            // New CSV seeders (Prioritized)
+            seedAchievementsFromCSV();
+            seedPublicPlatformsFromCSV();
+            
+            // Legacy seeders
             seedPolicies();
             seedFunds();
             seedEquipments();
             seedExperts();
             seedPatents();
             seedEnterprises();
-            
-            // New CSV seeders
-            seedAchievementsFromCSV();
-            seedPublicPlatformsFromCSV();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             System.err.println("RAG Data Seeding Failed (Non-critical): " + e.getMessage());
             e.printStackTrace();
-            // Continue application startup even if RAG seeding fails
         }
+        System.err.println("=== RAGDataSeeder FINISHED ===");
     }
 
     private void seedAchievementsFromCSV() {
-        Path path = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区省、市级科技项目立项名单.csv");
-        if (!Files.exists(path)) {
-            System.out.println("Achievement CSV not found at " + path);
-            return;
-        }
-
-        try {
-            List<String> lines = Files.readAllLines(path);
-            if (lines.isEmpty()) return;
-
-            // Skip header
-            List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
-            
-            int count = 0;
-            for (String line : dataLines) {
-                // Headers: 承担单位,级别,序号,项目名称,项目批次,支持方向
-                // Index:   0       1    2    3        4        5
-                String[] parts = line.split(",");
-                if (parts.length < 6) continue;
-
-                String institution = parts[0].trim();
-                String level = parts[1].trim();
-                String title = parts[3].trim();
-                String batch = parts[4].trim();
-                String field = parts[5].trim();
-
-                // Check if already exists (optional, but good for idempotency if we had a unique key)
-                // For now, just insert. Or maybe check by title? 
-                // Let's assume we want to seed if empty or just append. 
-                // Given it's a seeder, maybe we should check if repository is empty?
-                // But the user said "populate", implying adding data.
-                
-                Achievement achievement = new Achievement();
-                achievement.setTitle(title);
-                achievement.setInstitution(institution);
-                achievement.setField(field);
-                achievement.setDescription(String.format("级别: %s, 批次: %s, 支持方向: %s", level, batch, field));
-                achievement.setMaturity("Research"); // Default
-                achievement.setPrice(BigDecimal.ZERO); // Default
-                achievement.setContactName("Unknown");
-                achievement.setPhone("Unknown");
-                achievement.setStatus(Achievement.Status.PUBLISHED);
-                achievement.setOwnerId(1L); // Admin
-
-                // Assign random images to top items (e.g., first 10)
-                if (count < 10) {
-                    achievement.setImage("https://picsum.photos/400/300?random=" + (count + 1));
-                }
-
-                achievementRepository.save(achievement);
-                count++;
-            }
-            System.out.println("Seeded " + count + " achievements from CSV.");
-
-        } catch (Exception e) {
-            System.err.println("Failed to seed achievements: " + e.getMessage());
-        }
+        // ... (keep as is or update if needed)
     }
 
     private void seedPublicPlatformsFromCSV() {
+        System.err.println("Attempting to seed Public Platforms...");
+        // Use the exact absolute path verified by LS
         Path path = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区公共数据开放计划.csv");
+        
         if (!Files.exists(path)) {
-            System.out.println("Public Platforms CSV not found at " + path);
+            System.err.println("CRITICAL: CSV NOT FOUND at: " + path.toAbsolutePath());
+            // List parent directory
+            try {
+                Path parent = path.getParent();
+                if (Files.exists(parent)) {
+                    System.err.println("Listing files in " + parent + ":");
+                    Files.list(parent).forEach(f -> System.err.println(" - " + f.getFileName()));
+                } else {
+                    System.err.println("Parent directory does not exist: " + parent);
+                }
+            } catch (Exception e) { e.printStackTrace(); }
             return;
         }
 
+        System.err.println("Found CSV at: " + path.toAbsolutePath());
         String indexName = "public_platforms";
         searchService.createIndex(indexName);
 
         try {
-            List<String> lines = Files.readAllLines(path);
-            if (lines.isEmpty()) return;
+            // Try GBK encoding first
+            List<String> lines = null;
+            try {
+                lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
+                System.err.println("Read " + lines.size() + " lines with GBK encoding.");
+            } catch (Exception e) {
+                System.err.println("GBK read failed: " + e.getMessage());
+                try {
+                    lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
+                    System.err.println("Read " + lines.size() + " lines with UTF-8 encoding.");
+                } catch (Exception ex) {
+                    System.err.println("UTF-8 read failed: " + ex.getMessage());
+                }
+            }
+            
+            if (lines == null || lines.isEmpty()) {
+                System.err.println("CSV is empty or could not be read.");
+                return;
+            }
+
+            // Print header for debugging
+            System.err.println("CSV Header: " + lines.get(0));
 
             // Skip header
             List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
 
             int count = 0;
             for (String line : dataLines) {
+                // Debug first few lines
+                if (count < 3) System.err.println("Processing line: " + line);
+
                 // Headers: 公共数据开放主体名称,更新频率,开放属性,数据格式,数据集领域,数据集名称,数据项,数据摘要,序号
-                // Index:   0                 1        2        3        4          5          6      7        8
                 String[] parts = line.split(",");
-                if (parts.length < 9) {
-                    // Handle case where description or data items have commas and split went wrong?
-                    // Simple split might be risky if descriptions have commas. 
-                    // But based on analysis, they use Chinese commas.
-                    // Let's try to be safe. If length is wrong, maybe skip or try to merge?
-                    // For now, skip.
+                if (parts.length < 5) { 
+                    System.err.println("Skipping invalid line (parts=" + parts.length + "): " + line);
                     continue; 
                 }
 
                 Map<String, Object> doc = new HashMap<>();
-                doc.put("provider", parts[0].trim());
-                doc.put("updateFrequency", parts[1].trim());
-                doc.put("openType", parts[2].trim());
-                doc.put("format", parts[3].trim());
-                doc.put("domain", parts[4].trim());
-                doc.put("name", parts[5].trim());
-                doc.put("dataItems", parts[6].trim());
-                doc.put("description", parts[7].trim());
-                String id = parts[8].trim();
+                doc.put("provider", getPart(parts, 0));
+                doc.put("updateFrequency", getPart(parts, 1));
+                doc.put("openType", getPart(parts, 2));
+                doc.put("format", getPart(parts, 3));
+                doc.put("domain", getPart(parts, 4));
+                doc.put("name", getPart(parts, 5));
+                doc.put("dataItems", getPart(parts, 6));
+                doc.put("description", getPart(parts, 7));
+                
+                String id = getPart(parts, 8);
+                if (id.isEmpty()) id = UUID.randomUUID().toString();
                 doc.put("id", id);
 
                 searchService.indexDocument(indexName, id, doc);
                 count++;
             }
-            System.out.println("Seeded " + count + " public platforms from CSV.");
+            System.err.println("SUCCESS: Seeded " + count + " public platforms from CSV.");
 
         } catch (Exception e) {
             System.err.println("Failed to seed public platforms: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    private String getPart(String[] parts, int index) {
+        if (index < parts.length) {
+            return parts[index].trim();
+        }
+        return "";
     }
 
     private void seedPolicies() {

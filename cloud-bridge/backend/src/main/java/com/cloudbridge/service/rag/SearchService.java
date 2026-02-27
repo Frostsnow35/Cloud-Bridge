@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SearchService {
@@ -25,7 +26,14 @@ public class SearchService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // In-memory store for fallback when ES is unavailable
+    // Map<IndexName, Map<DocID, JSONString>>
+    private final Map<String, Map<String, String>> memoryStore = new ConcurrentHashMap<>();
+
     public void createIndex(String indexName) {
+        // Initialize memory store for this index
+        memoryStore.computeIfAbsent(indexName, k -> new ConcurrentHashMap<>());
+        
         String url = esUrl + "/" + indexName;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -47,6 +55,17 @@ public class SearchService {
     }
 
     public void indexDocument(String indexName, String id, Object document) {
+        // Always store in memory first as fallback
+        try {
+            String json = objectMapper.writeValueAsString(document);
+            memoryStore.computeIfAbsent(indexName, k -> new ConcurrentHashMap<>()).put(id, json);
+            if ("public_platforms".equals(indexName)) {
+                System.err.println("Indexed public_platform: " + id);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to serialize document for memory store: " + e.getMessage());
+        }
+
         String url = esUrl + "/" + indexName + "/_doc/" + id;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -62,11 +81,20 @@ public class SearchService {
     }
 
     public List<String> search(String indexName, String queryText) {
-        // Mock data fallback if ES is not available
+        // Try ES first
         try {
-            return searchES(indexName, queryText);
+            List<String> results = searchES(indexName, queryText);
+            // If ES returns results, return them.
+            // BUT: If ES returns empty list, it might be because the index is empty in ES
+            // but we have data in memory (e.g. public_platforms loaded from CSV but ES failed).
+            // So if empty, fallback to memory/mock.
+            if (!results.isEmpty()) {
+                return results;
+            }
+            System.err.println("ES returned 0 results for " + indexName + ", falling back to memory/mocks");
+            return getMockData(indexName, queryText);
         } catch (Exception e) {
-            System.err.println("ES Search failed, returning mock data for " + indexName);
+            System.err.println("ES Search failed (" + e.getMessage() + "), returning mock data for " + indexName);
             return getMockData(indexName, queryText);
         }
     }
@@ -119,7 +147,23 @@ public class SearchService {
     }
 
     private List<String> getMockData(String indexName, String queryText) {
+        System.err.println("=== SearchService: getMockData called for index: " + indexName);
         List<String> mocks = new ArrayList<>();
+        
+        // 1. Add data from in-memory store (populated by DataInitializer/Seeder)
+        Map<String, String> indexData = memoryStore.get(indexName);
+        if (indexData != null) {
+            System.err.println("=== SearchService: Found " + indexData.size() + " items in memoryStore for " + indexName);
+            mocks.addAll(indexData.values());
+        } else {
+            System.err.println("=== SearchService: memoryStore is NULL for " + indexName + ". Available keys: " + memoryStore.keySet());
+        }
+
+        // 2. Add hardcoded mocks if memory is empty (or mixed, depending on need)
+        // Only add hardcoded if memory is empty to avoid duplicates if seeder runs?
+        // Or just add them. Let's add them for robustness but check for ID collision if possible.
+        // For simplicity, just adding them.
+        
         if ("policies".equals(indexName)) {
             mocks.add("{\"title\": \"关于促进生物医药产业高质量发展的若干措施\", \"department\": \"市发改委\", \"publishDate\": \"2024-01-15\", \"policyType\": \"产业扶持\", \"content\": \"对新获批的创新药给予最高500万元奖励，支持企业建设高水平研发中心。\", \"industry\": [\"生物医药\"]}");
             mocks.add("{\"title\": \"中小企业数字化转型补贴方案\", \"department\": \"市工信局\", \"publishDate\": \"2024-02-10\", \"policyType\": \"资金补贴\", \"content\": \"支持中小企业购买云服务、工业软件，补贴比例最高50%。\", \"industry\": [\"数字经济\", \"智能制造\"]}");
@@ -140,10 +184,9 @@ public class SearchService {
         } else if ("enterprises".equals(indexName)) {
             mocks.add("{\"id\": \"1001\", \"name\": \"智云科技股份有限公司\", \"industry\": \"人工智能\", \"location\": \"高新区\", \"scale\": \"500-1000人\", \"description\": \"专注于自然语言处理和知识图谱技术的研发与应用，服务于金融、医疗等领域。\"}");
             mocks.add("{\"id\": \"1002\", \"name\": \"绿能动力科技有限公司\", \"industry\": \"新能源\", \"location\": \"经开区\", \"scale\": \"100-499人\", \"description\": \"致力于高性能锂离子电池及储能系统的研发、生产和销售。\"}");
-        } else if ("public_platforms".equals(indexName)) {
-            mocks.add("{\"provider\": \"白云区科技工业商务和信息化局\", \"name\": \"白云区电动汽车充电站\", \"description\": \"该数据为白云区电动汽车充电站基本信息，包括：站点公司名称、站点地址\", \"id\": \"1\", \"domain\": \"民生服务\", \"format\": \"JSON\", \"updateFrequency\": \"每周更新\"}");
-            mocks.add("{\"provider\": \"白云区民政局\", \"name\": \"白云区骨灰楼信息\", \"description\": \"该数据为白云区各镇街骨灰楼基本信息。\", \"id\": \"2\", \"domain\": \"民生服务\", \"format\": \"CSV\", \"updateFrequency\": \"每月更新\"}");
-        }
+        } 
+        
+        // Public Platforms: Only return memoryStore data (loaded from CSV). Do NOT use hardcoded mocks.
         
         // Filter by keyword if provided (simple contains check)
         if (queryText != null && !queryText.isEmpty()) {
@@ -180,11 +223,28 @@ public class SearchService {
                 }
             }
         } catch (Exception e) {
+            // Fallback to memory store first
+            Map<String, String> indexData = memoryStore.get(indexName);
+            if (indexData != null && indexData.containsKey(id)) {
+                return indexData.get(id);
+            }
+            
             System.err.println("GetById failed for " + id + " in " + indexName + ": " + e.getMessage());
-            // Fallback to mock data for demo
+            // Fallback to mock data for demo (but avoid for public_platforms if empty)
             List<String> mocks = getMockData(indexName, null);
             if (!mocks.isEmpty()) {
-                return mocks.get(0);
+                // BUG FIX: Do NOT blindly return the first item. Check if ID matches.
+                // For hardcoded mocks, we might iterate.
+                for (String mockJson : mocks) {
+                    try {
+                        JsonNode node = objectMapper.readTree(mockJson);
+                        if (node.has("id") && node.get("id").asText().equals(id)) {
+                            return mockJson;
+                        }
+                    } catch (Exception ex) {
+                        // ignore
+                    }
+                }
             }
         }
         return null;

@@ -68,7 +68,7 @@
         <h2 class="section-title">精选成果</h2>
         <el-carousel :interval="4000" type="card" height="340px" indicator-position="outside">
           <el-carousel-item v-for="item in featuredAchievements" :key="item.id">
-            <div class="carousel-card" @click="$router.push('/achievements')">
+            <div class="carousel-card" @click="$router.push(`/achievements/${item.id}`)">
               <div class="card-glow"></div>
               <div class="carousel-content">
                 <div class="card-header">
@@ -92,23 +92,27 @@
     <div class="section-container">
       <div class="content-wrapper">
         <h2 class="section-title">政策资讯</h2>
-        <div class="policy-grid">
-           <div v-for="policy in policyNews" :key="policy.title" class="policy-card" @click="$router.push('/libraries/policies')">
-              <div class="policy-icon-wrapper">
-                 <img v-if="policy.icon" :src="policy.icon" class="policy-img" />
-                 <el-icon v-else class="policy-icon"><Document /></el-icon>
-              </div>
-              <div class="policy-content">
-                <h3 class="policy-title">{{ policy.title }}</h3>
-                <div class="policy-meta">
-                  <span class="policy-date-text">{{ policy.publishDate }}</span>
-                  <el-tag size="small" effect="plain">{{ policy.department }}</el-tag>
-                  <el-tag size="small" type="warning">{{ policy.policyType }}</el-tag>
-                </div>
-                <p class="policy-desc">{{ truncateText(policy.content, 60) }}</p>
-              </div>
-           </div>
-        </div>
+        <el-carousel :interval="5000" height="240px" indicator-position="none" arrow="always">
+           <el-carousel-item v-for="i in Math.ceil(policyNews.length / 3)" :key="i">
+             <div class="policy-grid-slide">
+               <div v-for="policy in policyNews.slice((i-1)*3, i*3)" :key="policy.title" class="policy-card" @click="$router.push(`/libraries/policies/${policy.id || 'P001'}`)">
+                  <div class="policy-icon-wrapper">
+                     <img v-if="policy.icon" :src="policy.icon" class="policy-img" />
+                     <el-icon v-else class="policy-icon"><Document /></el-icon>
+                  </div>
+                  <div class="policy-content">
+                    <h3 class="policy-title">{{ policy.title }}</h3>
+                    <div class="policy-meta">
+                      <span class="policy-date-text">{{ policy.publishDate }}</span>
+                      <el-tag size="small" effect="plain">{{ policy.department }}</el-tag>
+                      <el-tag size="small" type="warning">{{ policy.policyType }}</el-tag>
+                    </div>
+                    <p class="policy-desc">{{ truncateText(policy.content, 60) }}</p>
+                  </div>
+               </div>
+             </div>
+           </el-carousel-item>
+        </el-carousel>
       </div>
     </div>
 
@@ -116,26 +120,30 @@
     <div class="section-container">
       <div class="content-wrapper">
         <h2 class="section-title">最新需求</h2>
-        <el-row :gutter="24">
-          <el-col :span="12" v-for="news in latestDemands" :key="news.id">
-            <div class="news-card" @click="$router.push('/needs')">
-              <div class="news-icon-wrapper">
-                <el-icon class="news-icon"><Notification /></el-icon>
-              </div>
-              <div class="news-content-wrapper">
-                <div class="news-header">
-                  <span class="news-title">{{ news.title }}</span>
-                  <span class="news-date">{{ news.date }}</span>
+        <el-carousel :interval="6000" height="200px" direction="vertical" indicator-position="none">
+          <el-carousel-item v-for="i in Math.ceil(latestDemands.length / 2)" :key="i">
+            <el-row :gutter="24">
+              <el-col :span="12" v-for="news in latestDemands.slice((i-1)*2, i*2)" :key="news.id">
+                <div class="news-card" @click="$router.push(`/needs/${news.id}`)">
+                  <div class="news-icon-wrapper">
+                    <el-icon class="news-icon"><Notification /></el-icon>
+                  </div>
+                  <div class="news-content-wrapper">
+                    <div class="news-header">
+                      <span class="news-title">{{ news.title }}</span>
+                      <span class="news-date">{{ news.date }}</span>
+                    </div>
+                    <p class="news-desc">{{ news.desc }}</p>
+                    <div class="news-footer">
+                      <span class="field-badge">{{ news.field }}</span>
+                      <span class="arrow-icon">→</span>
+                    </div>
+                  </div>
                 </div>
-                <p class="news-desc">{{ news.desc }}</p>
-                <div class="news-footer">
-                  <span class="field-badge">{{ news.field }}</span>
-                  <span class="arrow-icon">→</span>
-                </div>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
+              </el-col>
+            </el-row>
+          </el-carousel-item>
+        </el-carousel>
       </div>
     </div>
   </div>
@@ -156,7 +164,7 @@ const fetchPolicyNews = async () => {
     const res = await axios.get('/api/libraries/policies')
     // Parse JSON strings
     const policies = res.data.map((str: string) => JSON.parse(str))
-    policyNews.value = policies.slice(0, 4) // Take top 4
+    policyNews.value = policies.slice(0, 9) // Take top 9 for 3 slides
   } catch (e) {
     console.error(e)
   }
@@ -474,6 +482,13 @@ const searchTag = (tag: string) => {
 }
 
 /* Policy News */
+.policy-grid-slide {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding: 5px; /* For shadow */
+}
+
 .policy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
