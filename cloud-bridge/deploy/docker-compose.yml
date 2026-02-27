@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: cloud-bridge-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/cloud_bridge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_NEO4J_URI=bolt://neo4j:7687
+      - SPRING_NEO4J_AUTHENTICATION_USERNAME=neo4j
+      - SPRING_NEO4J_AUTHENTICATION_PASSWORD=password
+      - SPRING_DATA_REDIS_REPOSITORIES_ENABLED=true
+      - SPRING_DATA_NEO4J_REPOSITORIES_ENABLED=true
+      - ES_URL=http://elasticsearch:9200
+      - SPRING_ELASTICSEARCH_URIS=elasticsearch:9200
+      # AI Config (Override these in production or .env)
+      - AI_API_URL=${AI_API_URL:-http://api.siliconflow.cn/v1/chat/completions}
+      - AI_API_KEY=${AI_API_KEY:-sk-zzfnrqhpsxrvkutyjqbkfukflugzkurpwbhmopzpsxygukqm}
+      - AI_API_MODEL=${AI_API_MODEL:-deepseek-ai/DeepSeek-R1-0528-Qwen3-8B}
+    depends_on:
+      - mysql
+      - redis
+      - neo4j
+    networks:
+      - cloud-bridge-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: cloud-bridge-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cloud-bridge-net
+
+  mysql:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/mysql:8.0
+    container_name: cloud-bridge-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cloud_bridge
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cloud-bridge-net
+
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/redis:6.2
+    container_name: cloud-bridge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cloud-bridge-net
+
+  neo4j:
+    image: dockerproxy.com/library/neo4j:5.12.0
+    container_name: cloud-bridge-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - cloud-bridge-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    container_name: cloud-bridge-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - cloud-bridge-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  neo4j_data:
+  es_data:
+
+networks:
+  cloud-bridge-net:
+    driver: bridge

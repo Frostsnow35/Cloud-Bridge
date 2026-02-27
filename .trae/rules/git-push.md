@@ -1,0 +1,1 @@
+若单日代码/目录有更新，需在commit message中添加`[fix]`或`[feat]`等前缀，随后自动提交更新到仓库https://github.com/Frostsnow35/Cloud-Bridge的`main`分支。

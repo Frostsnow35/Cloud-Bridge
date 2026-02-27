@@ -1,0 +1,5 @@
+- [ ] Detail page loads correctly (no white screen) for both Demands and Achievements
+- [ ] Backend contains 300+ Achievements and 50+ Demands
+- [ ] Data is generated using DeepSeek-R1-0528-Qwen3-8B
+- [ ] Specific demands have matching achievements with ~95%, ~80%, and ~70% scores
+- [ ] All generated data is visible in the frontend list

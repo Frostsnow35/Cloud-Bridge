@@ -1,0 +1,2002 @@
+[
+  {
+    "title": "人工智能预测性维护系统",
+    "description": "开发基于AI的工业设备故障预测模型，减少停机时间。",
+    "field": "人工智能",
+    "budget": 650000,
+    "deadline": "2027-04-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "自修复聚合物涂层",
+    "description": "创造一种能自动修复损伤的涂层材料，延长产品寿命。",
+    "field": "新材料",
+    "budget": 500000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "高效太阳能电池技术",
+    "description": "创新太阳能电池设计，提升效率并降低制造成本。",
+    "field": "新能源",
+    "budget": 8000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "智能制造自动化系统",
+    "description": "设计集成IoT的制造业实时监控与优化系统。",
+    "field": "智能制造",
+    "budget": 7000000,
+    "deadline": "2028-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "大数据城市规划分析",
+    "description": "利用大数据优化城市交通和资源分配，提升生活质量。",
+    "field": "大数据",
+    "budget": 5500000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 8,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "环保科技废物转化系统",
+    "description": "开发有机废物转为能源的技术，减少环境污染。",
+    "field": "环保科技",
+    "budget": 4500000,
+    "deadline": "2026-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "物联网智慧农业监测",
+    "description": "创建传感器网络监测土壤和作物健康，实现精准农业。",
+    "field": "物联网",
+    "budget": 300000,
+    "deadline": "2028-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 31,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "生物医药快速检测工具",
+    "description": "设计便携式诊断设备用于快速识别传染病。",
+    "field": "生物医药",
+    "budget": 9000000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "量子通信安全协议",
+    "description": "实现量子密钥分发系统，提供不可破解的加密通信。",
+    "field": "量子通信",
+    "budget": 7500000,
+    "deadline": "2029-04-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 49,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "碳中和二氧化碳捕获模块",
+    "description": "开发小型模块捕获工业排放的CO2，助力碳中和目标。",
+    "field": "碳中和",
+    "budget": 6000000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 17,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Home Control System",
+    "description": "User-friendly interface for managing smart devices in homes.",
+    "field": "物联网",
+    "budget": 600000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI Navigation for Autonomous Vehicles",
+    "description": "Real-time path planning and obstacle avoidance using AI.",
+    "field": "人工智能",
+    "budget": 8000000,
+    "deadline": "2028-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Privacy-Preserving Data Analytics Platform",
+    "description": "Allows data analysis without exposing sensitive information.",
+    "field": "大数据",
+    "budget": 450000,
+    "deadline": "2027-03-15T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Contract Security Audit Tool",
+    "description": "Scans and detects vulnerabilities in blockchain smart contracts.",
+    "field": "区块链",
+    "budget": 1200000,
+    "deadline": "2026-09-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Communication Network",
+    "description": "Secure communication using quantum key distribution.",
+    "field": "量子通信",
+    "budget": 750000,
+    "deadline": "2027-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Battery Material for EVs",
+    "description": "High-capacity, long-life material for electric vehicle batteries.",
+    "field": "新材料",
+    "budget": 3000000,
+    "deadline": "2028-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Renewable Energy Optimization System",
+    "description": "Integrates solar and wind energy for smart grid efficiency.",
+    "field": "新能源",
+    "budget": 5000000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 31,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Powered Manufacturing Quality Control",
+    "description": "Uses AI cameras for real-time defect detection.",
+    "field": "智能制造",
+    "budget": 900000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 5,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Based Waste Recycling System",
+    "description": "Automated sorting and processing of recyclable materials.",
+    "field": "环保科技",
+    "budget": 650000,
+    "deadline": "2027-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 28,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain Fintech for Secure Transactions",
+    "description": "Secure payment system using blockchain technology.",
+    "field": "金融科技",
+    "budget": 2500000,
+    "deadline": "2028-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI for Predictive Maintenance in Manufacturing",
+    "description": "AI system to predict and prevent equipment failures.",
+    "field": "人工智能",
+    "budget": 750000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Nanomaterials for Lightweight Applications",
+    "description": "Development of advanced composite materials for weight reduction.",
+    "field": "新材料",
+    "budget": 6000000,
+    "deadline": "2026-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Solar Cell Efficiency Improvement",
+    "description": "Technique to increase efficiency of photovoltaic cells.",
+    "field": "新能源",
+    "budget": 500000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Factory Automation System",
+    "description": "IoT-integrated system for automated production lines.",
+    "field": "智能制造",
+    "budget": 8000000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics for Marketing",
+    "description": "Platform to analyze customer data for targeted advertising.",
+    "field": "大数据",
+    "budget": 400000,
+    "deadline": "2027-05-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 11,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Wastewater Treatment Technology",
+    "description": "Innovative method for purifying industrial wastewater.",
+    "field": "环保科技",
+    "budget": 7000000,
+    "deadline": "2026-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 29,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Agriculture Sensors",
+    "description": "Sensor network for monitoring soil and crop conditions.",
+    "field": "物联网",
+    "budget": 550000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 38,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Gene Therapy for Genetic Disorders",
+    "description": "Method to treat hereditary diseases using gene editing.",
+    "field": "生物医药",
+    "budget": 9000000,
+    "deadline": "2028-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 49,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Secure Communication Network",
+    "description": "Network using quantum key distribution for secure data transfer.",
+    "field": "量子通信",
+    "budget": 6500000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Carbon Emission Tracking System",
+    "description": "Software for monitoring and reducing carbon footprint in industries.",
+    "field": "碳中和",
+    "budget": 5000000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 25,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-based Predictive Maintenance for Industrial Equipment",
+    "description": "AI system to predict failures and reduce downtime in factories.",
+    "field": "人工智能",
+    "budget": 750000,
+    "deadline": "2026-10-15T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Development of Lightweight Composite Materials for Electric Vehicles",
+    "description": "New composite materials to reduce weight and improve efficiency.",
+    "field": "新材料",
+    "budget": 600000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Battery Technology for Electric Vehicles",
+    "description": "High-capacity, long-life batteries for EVs with extended range.",
+    "field": "新能源",
+    "budget": 9000000,
+    "deadline": "2027-01-15T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Factory Automation System",
+    "description": "Intelligent robotics and AI for automated production lines.",
+    "field": "智能制造",
+    "budget": 500000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 44,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics Platform for Healthcare",
+    "description": "Patient data analysis for personalized medicine and outcomes.",
+    "field": "大数据",
+    "budget": 800000,
+    "deadline": "2026-05-20T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 55,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Waste-to-Energy Conversion System",
+    "description": "Technology to convert organic waste into renewable energy sources.",
+    "field": "环保科技",
+    "budget": 400000,
+    "deadline": "2026-08-10T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 66,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "IoT-Based Smart Agriculture Monitoring",
+    "description": "Sensor network for real-time crop monitoring and irrigation control.",
+    "field": "物联网",
+    "budget": 350000,
+    "deadline": "2027-11-01T23:59:59",
+    "type": "REWARD",
+    "ownerId": 77,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "mRNA Vaccine Production Technology",
+    "description": "Scalable and efficient method for mRNA vaccine manufacturing.",
+    "field": "生物医药",
+    "budget": 7000000,
+    "deadline": "2027-03-15T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 88,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Secure Blockchain Audit Tool for Smart Contracts",
+    "description": "Tool for verifying and auditing smart contract security.",
+    "field": "区块链",
+    "budget": 550000,
+    "deadline": "2026-07-22T23:59:59",
+    "type": "REWARD",
+    "ownerId": 99,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital Twin Platform for Urban Planning",
+    "description": "Virtual model to simulate and optimize city infrastructure projects.",
+    "field": "数字孪生",
+    "budget": 1000000,
+    "deadline": "2027-02-15T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 10,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Urban Sewer System Intelligent Monitoring Robot",
+    "description": "Automated system for real-time monitoring and inspection of sewer networks.",
+    "field": "物联网",
+    "budget": 600000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Industrial Carbon Capture and Utilization Plant",
+    "description": "Facility to capture CO2 from factories and convert it into useful products.",
+    "field": "碳中和",
+    "budget": 8000000,
+    "deadline": "2027-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Supply Chain Finance Blockchain Platform",
+    "description": "Secure and transparent platform for supply chain financing using blockchain.",
+    "field": "区块链",
+    "budget": 4000000,
+    "deadline": "2026-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Powered Drug Discovery System",
+    "description": "AI algorithm to accelerate the discovery and testing of new pharmaceuticals.",
+    "field": "人工智能",
+    "budget": 5000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 30,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital Twin for Manufacturing Simulation",
+    "description": "Virtual replica of production lines for predictive maintenance and training.",
+    "field": "数字孪生",
+    "budget": 3000000,
+    "deadline": "2026-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Self-Healing Concrete Material",
+    "description": "Development of concrete that automatically repairs cracks to enhance durability.",
+    "field": "新材料",
+    "budget": 700000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 18,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Solar Panel Technology",
+    "description": "Next-gen solar cells with higher efficiency and lower production costs.",
+    "field": "新能源",
+    "budget": 9000000,
+    "deadline": "2026-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 40,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Driven Assembly Line Automation",
+    "description": "Smart factory systems that use AI for optimizing production processes.",
+    "field": "智能制造",
+    "budget": 4500000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 25,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics for Customer Insights",
+    "description": "Platform to analyze consumer data for targeted marketing and business decisions.",
+    "field": "大数据",
+    "budget": 3000000,
+    "deadline": "2026-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 35,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Efficient Wastewater Treatment Using Nanotechnology",
+    "description": "Method to treat industrial wastewater efficiently with nanofiltration techniques.",
+    "field": "环保科技",
+    "budget": 6000000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 50,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-based Personalized Education Platform",
+    "description": "AI algorithms to personalize education and boost student engagement.",
+    "field": "人工智能",
+    "budget": 650000,
+    "deadline": "2026-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Composite Material for Aerospace",
+    "description": "New composite materials for lightweight aerospace applications.",
+    "field": "新材料",
+    "budget": 1200000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 28,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Next-Generation Solar Panels",
+    "description": "Solar panels with enhanced efficiency for renewable energy generation.",
+    "field": "新能源",
+    "budget": 900000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Controlled Manufacturing Automation",
+    "description": "AI-controlled automation in manufacturing processes.",
+    "field": "智能制造",
+    "budget": 750000,
+    "deadline": "2028-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 41,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics for Urban Traffic",
+    "description": "Big data analytics for optimizing urban traffic patterns.",
+    "field": "大数据",
+    "budget": 800000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Nanotechnology Water Purification",
+    "description": "Nanotechnology-based water purification for clean access.",
+    "field": "环保科技",
+    "budget": 1100000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Home IoT Integration",
+    "description": "IoT integration for smart home monitoring and control.",
+    "field": "物联网",
+    "budget": 500000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 14,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "CRISPR Gene Editing Tools",
+    "description": "CRISPR-based gene editing tools for medical advancements.",
+    "field": "生物医药",
+    "budget": 1000000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Computing Applications",
+    "description": "Quantum computing applications for solving complex problems.",
+    "field": "量子通信",
+    "budget": 1400000,
+    "deadline": "2028-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 38,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain for Secure Mobile Payments",
+    "description": "Blockchain-enhanced security for mobile financial transactions.",
+    "field": "金融科技",
+    "budget": 600000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 47,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "人工智能辅助早期疾病诊断系统",
+    "description": "基于AI的医疗影像分析系统，用于早期疾病检测。",
+    "field": "人工智能",
+    "budget": 750000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "石墨烯复合材料开发",
+    "description": "开发轻质高强度石墨烯复合材料，用于航空航天领域。",
+    "field": "新材料",
+    "budget": 600000,
+    "deadline": "2026-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "下一代电动汽车电池技术",
+    "description": "研发高效率电动汽车电池，实现更长续航和快速充电。",
+    "field": "新能源",
+    "budget": 800000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 30,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "零售大数据分析平台",
+    "description": "利用大数据技术分析客户行为，优化零售策略。",
+    "field": "大数据",
+    "budget": 500000,
+    "deadline": "2026-04-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 40,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "纳米技术水处理系统",
+    "description": "开发纳米材料过滤系统，用于高效净化水质。",
+    "field": "环保科技",
+    "budget": 700000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 10,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "物联网智能家居监控系统",
+    "description": "集成物联网设备的智能家居安防与健康管理平台。",
+    "field": "物联网",
+    "budget": 450000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 35,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "抗癌药物AI筛选模型",
+    "description": "基于AI的抗癌新药发现模型，加速药物研发过程。",
+    "field": "生物医药",
+    "budget": 900000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 28,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "量子通信安全系统",
+    "description": "量子密钥分发系统，用于安全数据传输。",
+    "field": "量子通信",
+    "budget": 1200000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "碳中和碳捕获技术",
+    "description": "高效碳捕获与储存方法，实现碳中和目标。",
+    "field": "碳中和",
+    "budget": 650000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "区块链供应链管理系统",
+    "description": "基于区块链的供应链透明化管理系统。",
+    "field": "区块链",
+    "budget": 750000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 37,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Powered Image Recognition for Security Systems",
+    "description": "Develop an AI system that accurately identifies objects in real-time video feeds.",
+    "field": "人工智能",
+    "budget": 300000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "High-Performance Distributed Database System",
+    "description": "Need a scalable database with low latency for big data applications.",
+    "field": "大数据",
+    "budget": 600000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain-Based Identity Verification Platform",
+    "description": "Create a secure and immutable system for digital identity management.",
+    "field": "区块链",
+    "budget": 800000,
+    "deadline": "2026-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 30,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Nanocomposite Materials for Lightweight and Strong Structures",
+    "description": "Seeking materials that offer high strength with reduced weight for aerospace applications.",
+    "field": "新材料",
+    "budget": 1200000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Battery Technology for Electric Vehicles",
+    "description": "Innovative battery design to increase range and reduce charging time.",
+    "field": "新能源",
+    "budget": 900000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital Twin Simulation for Urban Infrastructure",
+    "description": "Create a digital twin of city infrastructure for monitoring and optimization.",
+    "field": "数字孪生",
+    "budget": 700000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 18,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Wastewater Treatment Using Membrane Bioreactors",
+    "description": "Efficient system for treating industrial wastewater to meet environmental standards.",
+    "field": "环保科技",
+    "budget": 450000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 29,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "mRNA Delivery System for Cancer Therapy",
+    "description": "Develop a novel vector for targeted delivery of mRNA in cancer treatment.",
+    "field": "生物医药",
+    "budget": 1000000,
+    "deadline": "2027-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 35,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Encryption Network for Secure Government Communications",
+    "description": "Implement quantum key distribution for unbreakable encryption.",
+    "field": "量子通信",
+    "budget": 5000000,
+    "deadline": "2028-05-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 11,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Green Hydrogen Production from Renewable Sources",
+    "description": "Technology to produce hydrogen using solar and wind energy with high efficiency.",
+    "field": "碳中和",
+    "budget": 850000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 40,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-based Cancer Drug Discovery Platform",
+    "description": "AI model for accelerating drug discovery and reducing costs in oncology research.",
+    "field": "人工智能",
+    "budget": 1500000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced Lightweight Alloy for Aerospace",
+    "description": "Development of high-strength, lightweight alloys for aircraft components to improve fuel efficiency.",
+    "field": "新材料",
+    "budget": 800000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Next-Generation Solar Cell Efficiency Enhancement",
+    "description": "Research and development of solar cells with higher conversion efficiency and longer lifespan.",
+    "field": "新能源",
+    "budget": 3000000,
+    "deadline": "2026-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 17,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Manufacturing Automation System",
+    "description": "IoT-integrated system for real-time monitoring and control of production lines.",
+    "field": "智能制造",
+    "budget": 4500000,
+    "deadline": "2028-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics for Financial Fraud Detection",
+    "description": "Platform using big data to detect and prevent financial fraud in real-time.",
+    "field": "大数据",
+    "budget": 2500000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 6,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Waste Sorting and Recycling Terminal",
+    "description": "AI-powered system for automatic identification and sorting of recyclable materials.",
+    "field": "环保科技",
+    "budget": 600000,
+    "deadline": "2026-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 41,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "IoT-Based Home Security Network",
+    "description": "Connected devices for comprehensive home security with real-time alerts.",
+    "field": "物联网",
+    "budget": 500000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 29,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Gene Therapy for Hereditary Diseases",
+    "description": "Development of CRISPR-based gene editing tools for treating genetic disorders.",
+    "field": "生物医药",
+    "budget": 9000000,
+    "deadline": "2029-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Key Distribution Network",
+    "description": "Implementation of secure quantum communication for sensitive data transfer.",
+    "field": "量子通信",
+    "budget": 7000000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 48,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Hydrogen Fuel Cell for Portable Electronics",
+    "description": "Efficient hydrogen fuel cell technology for powering portable devices.",
+    "field": "清洁能源",
+    "budget": 3500000,
+    "deadline": "2026-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 39,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Secure Communication Network Implementation",
+    "description": "Need for secure data transmission using quantum key distribution for enterprise network.",
+    "field": "量子通信",
+    "budget": 2000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 5,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Cancer Drug Discovery Platform using AI",
+    "description": "AI-based system for accelerating drug screening and candidate identification.",
+    "field": "生物医药",
+    "budget": 3000000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Efficient Perovskite Solar Cell Technology Transfer",
+    "description": "Seeking partners for licensing high-efficiency perovskite solar cell components technology.",
+    "field": "新能源",
+    "budget": 1500000,
+    "deadline": "2026-05-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "NLP Sentiment Analysis API Integration",
+    "description": "Integrate NLP-based sentiment analysis API into customer feedback system.",
+    "field": "大数据",
+    "budget": 4000000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 8,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Micro Nuclear Battery for Portable Devices",
+    "description": "Development of compact nuclear battery for long-term power in IoT devices.",
+    "field": "新材料",
+    "budget": 5000000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Driven Predictive Maintenance System",
+    "description": "Implementation of AI algorithms for predictive maintenance in manufacturing plants.",
+    "field": "智能制造",
+    "budget": 6000000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Waste-to-Energy Conversion Technology",
+    "description": "Seeking partners for technology transfer in converting organic waste to bioenergy.",
+    "field": "环保科技",
+    "budget": 7000000,
+    "deadline": "2026-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Decentralized Identity Management System",
+    "description": "Blockchain-based solution for secure and verifiable digital identity.",
+    "field": "区块链",
+    "budget": 8000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 6,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "5G Network Optimization for IoT Applications",
+    "description": "Technology to enhance 5G network performance for low-latency IoT deployments.",
+    "field": "5G",
+    "budget": 9000000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 30,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital Twin Platform for Manufacturing Simulation",
+    "description": "Create virtual replica of manufacturing processes for real-time monitoring and optimization.",
+    "field": "数字孪生",
+    "budget": 50000,
+    "deadline": "2027-07-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 40,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-based image recognition for quality control",
+    "description": "System to automatically identify defects in manufactured goods using AI algorithms.",
+    "field": "人工智能",
+    "budget": 100000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "New composite material for aerospace applications",
+    "description": "Material with high strength-to-weight ratio for use in aircraft components.",
+    "field": "新材料",
+    "budget": 500000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Advanced battery technology for renewable energy storage",
+    "description": "Battery system with longer lifespan and faster charging for solar energy storage.",
+    "field": "新能源",
+    "budget": 2000000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 56,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart manufacturing with IoT sensors",
+    "description": "Implement IoT to monitor and optimize production processes in real-time.",
+    "field": "智能制造",
+    "budget": 750000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 78,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big data analysis for marketing insights",
+    "description": "Process large datasets to extract patterns and predict customer preferences.",
+    "field": "大数据",
+    "budget": 3000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 9,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Water treatment using advanced filtration methods",
+    "description": "Develop a cost-effective water purification system for industrial wastewater.",
+    "field": "环保科技",
+    "budget": 1000000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "REWARD",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart home IoT hub",
+    "description": "Central device to control all household appliances and smart devices.",
+    "field": "物联网",
+    "budget": 4000000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Gene therapy for genetic disorders",
+    "description": "Clinical development of gene editing techniques to treat hereditary diseases.",
+    "field": "生物医药",
+    "budget": 6000000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 67,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum communication network",
+    "description": "Build secure communication infrastructure using quantum key distribution.",
+    "field": "量子通信",
+    "budget": 9000000,
+    "deadline": "2026-05-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 89,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain for secure voting systems",
+    "description": "Implement blockchain to ensure transparency and security in electronic voting.",
+    "field": "区块链",
+    "budget": 8000000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 10,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Powered Image Recognition System for Industrial Quality Control",
+    "description": "Need an AI model to detect defects in manufacturing products with >95% accuracy.",
+    "field": "人工智能",
+    "budget": 600000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Development of Lightweight Composite Material for Automotive Applications",
+    "description": "Seeking a new material that reduces weight by 30% without compromising strength.",
+    "field": "新材料",
+    "budget": 800000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 27,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Efficient Solar Cell Technology with Higher Conversion Efficiency",
+    "description": "Looking for a breakthrough in solar panel efficiency to exceed 25%.",
+    "field": "新能源",
+    "budget": 1200000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Automated Assembly Line System with IoT Integration",
+    "description": "Want a smart manufacturing solution that increases production efficiency by 20%.",
+    "field": "智能制造",
+    "budget": 750000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 18,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics Platform for Customer Behavior Prediction",
+    "description": "Need a system to analyze user data and predict trends with high accuracy.",
+    "field": "大数据",
+    "budget": 900000,
+    "deadline": "2026-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Waste Water Treatment Technology Using Nanofiltration",
+    "description": "Seeking an eco-friendly method to purify industrial wastewater to meet discharge standards.",
+    "field": "环保科技",
+    "budget": 500000,
+    "deadline": "2027-07-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 50,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Home Monitoring System with Edge Computing",
+    "description": "Develop a IoT network for home security and energy management.",
+    "field": "物联网",
+    "budget": 650000,
+    "deadline": "2026-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "mRNA Vaccine Storage Solution at Ambient Temperature",
+    "description": "Need a technology to store mRNA vaccines without refrigeration for longer shelf life.",
+    "field": "生物医药",
+    "budget": 1100000,
+    "deadline": "2027-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 38,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Key Distribution Network for Secure Communications",
+    "description": "Looking for a quantum communication system to ensure unbreakable encryption.",
+    "field": "量子通信",
+    "budget": 2000000,
+    "deadline": "2028-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain-Based Supply Chain Transparency Platform",
+    "description": "Seeking a decentralized ledger to track product origins and reduce fraud.",
+    "field": "区块链",
+    "budget": 850000,
+    "deadline": "2026-08-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 41,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Development of High-Efficiency Perovskite Solar Cells",
+    "description": "Seeking partners for commercialization of perovskite-based solar panels with efficiency >25%",
+    "field": "新能源",
+    "budget": 500000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI for Predictive Maintenance in Manufacturing",
+    "description": "Integrate machine learning models to predict equipment failures in factories",
+    "field": "人工智能",
+    "budget": 750000,
+    "deadline": "2026-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Automated Assembly Line for Electric Vehicle Batteries",
+    "description": "Design and implement IoT-integrated assembly system for high-volume EV battery production",
+    "field": "智能制造",
+    "budget": 2000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Platform for Personalized Medicine",
+    "description": "Develop analytics platform to process genomic data for targeted drug treatments",
+    "field": "大数据",
+    "budget": 1500000,
+    "deadline": "2028-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 44,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Wastewater Treatment Using Nanotechnology",
+    "description": "Seeking nanomaterial-based filters for efficient removal of contaminants",
+    "field": "环保科技",
+    "budget": 400000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 5,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Irrigation System for Urban Green Spaces",
+    "description": "IoT sensors and controllers for water-efficient gardening in cities",
+    "field": "物联网",
+    "budget": 300000,
+    "deadline": "2026-07-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 18,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "CRISPR Gene Editing for Hereditary Diseases",
+    "description": "Collaborate on developing CRISPR-based therapies for genetic disorders",
+    "field": "生物医药",
+    "budget": 9000000,
+    "deadline": "2029-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 37,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Key Distribution Network for Secure Communications",
+    "description": "Build a QKD system for enterprise data protection",
+    "field": "量子通信",
+    "budget": 8000000,
+    "deadline": "2028-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 49,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Carbon Capture Membrane Technology",
+    "description": "Develop novel membrane for efficient CO2 capture in industrial processes",
+    "field": "碳中和",
+    "budget": 600000,
+    "deadline": "2027-04-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 8,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain-Based Cross-Border Payment System",
+    "description": "Create a fast, secure payment network using distributed ledger technology",
+    "field": "金融科技",
+    "budget": 5000000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 41,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-based diagnostic tool for early disease detection",
+    "description": "Seeking an AI algorithm that can analyze medical images for early cancer detection.",
+    "field": "人工智能",
+    "budget": 500000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Development of lightweight composite material for automotive applications",
+    "description": "Need material that reduces weight by 20% while maintaining strength.",
+    "field": "新材料",
+    "budget": 1000000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Efficient solar panel technology for residential use",
+    "description": "Seeking innovative solar panel design with higher efficiency and lower cost.",
+    "field": "新能源",
+    "budget": 2000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 18,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Automated assembly line using IoT sensors for predictive maintenance",
+    "description": "Integrate IoT sensors to monitor equipment and predict failures.",
+    "field": "智能制造",
+    "budget": 750000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big data platform for analyzing consumer behavior in e-commerce",
+    "description": "Need scalable data processing system for real-time analytics.",
+    "field": "大数据",
+    "budget": 1500000,
+    "deadline": "2026-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 10,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Water purification system using advanced filtration membranes",
+    "description": "Develop membrane technology for removing contaminants from water.",
+    "field": "环保科技",
+    "budget": 800000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart home IoT ecosystem for energy management",
+    "description": "Create interconnected devices to optimize home energy consumption.",
+    "field": "物联网",
+    "budget": 600000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Point-of-care diagnostic kit for infectious diseases",
+    "description": "Portable device for rapid testing of common pathogens.",
+    "field": "生物医药",
+    "budget": 900000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 31,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Secure quantum key distribution system for financial institutions",
+    "description": "Implement QKD technology to enhance data security.",
+    "field": "量子通信",
+    "budget": 3000000,
+    "deadline": "2026-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain-based supply chain tracking for pharmaceuticals",
+    "description": "Ensure product authenticity and track distribution using blockchain.",
+    "field": "区块链",
+    "budget": 1200000,
+    "deadline": "2027-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 48,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "智能交通管理系统",
+    "description": "基于物联网的智能交通管理系统，优化信号控制和流量监测。",
+    "field": "物联网",
+    "budget": 600000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI语音助手开发",
+    "description": "开发基于AI的语音交互系统，用于智能设备控制。",
+    "field": "人工智能",
+    "budget": 800000,
+    "deadline": "2026-05-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "高性能复合材料",
+    "description": "研究和生产用于航空航天的轻质高强度复合材料。",
+    "field": "新材料",
+    "budget": 7000000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "高效太阳能电池技术",
+    "description": "开发新型太阳能电池，提高能量转换效率和耐用性。",
+    "field": "新能源",
+    "budget": 500000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "智能工厂自动化",
+    "description": "实现制造业的全自动化，集成AI和IoT技术。",
+    "field": "智能制造",
+    "budget": 9000000,
+    "deadline": "2026-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "大数据分析平台",
+    "description": "构建可扩展的大数据分析平台，用于商业智能和决策支持。",
+    "field": "大数据",
+    "budget": 400000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "废水处理技术",
+    "description": "开发高效的废水处理技术，减少工业污染和环境影响。",
+    "field": "环保科技",
+    "budget": 8500000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 31,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "新型疫苗研发",
+    "description": "研发针对特定疾病的新型疫苗，提高免疫效果和安全性。",
+    "field": "生物医药",
+    "budget": 750000,
+    "deadline": "2027-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 5,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "量子加密通信系统",
+    "description": "开发基于量子力学的加密通信系统，确保信息绝对安全。",
+    "field": "量子通信",
+    "budget": 10000000,
+    "deadline": "2028-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "风力涡轮机数字孪生模型",
+    "description": "创建风力涡轮机的数字孪生，用于预测性维护和性能优化。",
+    "field": "数字孪生",
+    "budget": 600000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 28,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "基于人工智能的实时视频识别系统",
+    "description": "用于公共区域人群面部准确识别的安全系统。",
+    "field": "人工智能",
+    "budget": 800000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "石墨烯柔性电池材料",
+    "description": "利用石墨烯开发高容量柔性电池新材料。",
+    "field": "新材料",
+    "budget": 3500000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 28,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "新型风能发电技术",
+    "description": "提高风力发电效率的新能源技术。",
+    "field": "新能源",
+    "budget": 5000000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "智能制造与物联网集成系统",
+    "description": "集成物联网技术进行制造过程实时监控和优化的智能系统。",
+    "field": "智能制造",
+    "budget": 7000000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 31,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "大数据分布式数据库",
+    "description": "用于大规模数据分析的高性能分布式数据库系统。",
+    "field": "大数据",
+    "budget": 450000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "生物降解污染处理技术",
+    "description": "利用工程微生物降解工业污染物的环保科技方法。",
+    "field": "环保科技",
+    "budget": 2000000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "REWARD",
+    "ownerId": 14,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "量子通信加密系统",
+    "description": "基于量子原理的不可破解加密通信技术。",
+    "field": "量子通信",
+    "budget": 9000000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "纳米粒子药物递送系统",
+    "description": "提高药物靶向递送和疗效的纳米技术方法。",
+    "field": "生物医药",
+    "budget": 650000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 37,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "区块链供应链管理系统",
+    "description": "用于物流透明和安全的区块链分布式账本技术。",
+    "field": "区块链",
+    "budget": 500000,
+    "deadline": "2026-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "5G物联网设备网络",
+    "description": "用于智慧城市高速通信的5G赋能物联网设备网络。",
+    "field": "5G",
+    "budget": 7500000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 49,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI辅助诊断系统升级",
+    "description": "需要升级AI诊断系统，集成最新深度学习算法，提高癌症诊断准确率，预算700000元",
+    "field": "人工智能",
+    "budget": 700000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "石墨烯导电膜研发",
+    "description": "寻找石墨烯基导电复合材料供应商，用于柔性电子设备，预算800000元",
+    "field": "新材料",
+    "budget": 800000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 25,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "高效太阳能电池技术",
+    "description": "开发新型太阳能电池板，提升能量转换效率至25%以上，预算12000000元",
+    "field": "新能源",
+    "budget": 12000000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 33,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "自动化装配生产线",
+    "description": "部署工业机器人实现精密装配，减少人工误差，预算3500000元",
+    "field": "智能制造",
+    "budget": 3500000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "用户行为大数据分析平台",
+    "description": "构建AI驱动的大数据分析系统，优化营销策略，预算6000000元",
+    "field": "大数据",
+    "budget": 6000000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "工业废水零排放处理技术",
+    "description": "寻找高效废水处理方案，实现零排放和合规，预算4000000元",
+    "field": "环保科技",
+    "budget": 4000000,
+    "deadline": "2026-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 38,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "城市物联网监控网络",
+    "description": "部署智能传感器网络监测空气质量，实时数据传输，预算2500000元",
+    "field": "物联网",
+    "budget": 2500000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI加速药物研发",
+    "description": "利用机器学习技术筛选药物分子，缩短新药开发周期，预算5000000元",
+    "field": "生物医药",
+    "budget": 5000000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 47,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "量子加密通信系统",
+    "description": "实施量子通信网络，确保敏感数据传输绝对安全，预算8000000元",
+    "field": "量子通信",
+    "budget": 8000000,
+    "deadline": "2026-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 22,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "区块链食品溯源平台",
+    "description": "开发基于区块链的供应链追溯系统，提高食品透明度，预算3000000元",
+    "field": "区块链",
+    "budget": 3000000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 5,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Powered Diagnostic Tool for Cancer Detection",
+    "description": "Uses machine learning to analyze medical images for early cancer diagnosis.",
+    "field": "人工智能",
+    "budget": 500000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Flexible OLED Displays for Wearable Devices",
+    "description": "Conductive materials for bendable screens and devices.",
+    "field": "新材料",
+    "budget": 750000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Next-Generation Battery for Electric Vehicles",
+    "description": "Longer-lasting and faster charging battery technology.",
+    "field": "新能源",
+    "budget": 2000000,
+    "deadline": "2027-06-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 56,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Automated Quality Control System",
+    "description": "Vision systems and AI for defect detection in manufacturing.",
+    "field": "智能制造",
+    "budget": 800000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 78,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Platform for Urban Planning",
+    "description": "Analytics for optimizing city infrastructure based on population data.",
+    "field": "大数据",
+    "budget": 3000000,
+    "deadline": "2026-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 9,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Biodegradable Plastic Alternatives",
+    "description": "Materials that break down naturally to reduce pollution.",
+    "field": "环保科技",
+    "budget": 400000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart Farming with IoT Sensors",
+    "description": "Sensor network for optimizing irrigation and fertilization in agriculture.",
+    "field": "物联网",
+    "budget": 600000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "RNA Interference Therapy for Genetic Diseases",
+    "description": "Targeted treatment to silence disease-causing genes.",
+    "field": "生物医药",
+    "budget": 9000000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 17,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Secure Communication Network",
+    "description": "Network using quantum key distribution for unbreakable security.",
+    "field": "量子通信",
+    "budget": 5000000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 39,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Supply Chain Blockchain Verification",
+    "description": "Ledger for transparent and immutable tracking of goods.",
+    "field": "区块链",
+    "budget": 450000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital Twin for Smart City Infrastructure",
+    "description": "Model to predict and maintain urban systems.",
+    "field": "数字孪生",
+    "budget": 800000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "IoT Gateway for Industrial Automation",
+    "description": "Edge device for real-time data processing.",
+    "field": "物联网",
+    "budget": 500000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 25,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Self-Healing Concrete Materials",
+    "description": "Materials that repair cracks automatically.",
+    "field": "新材料",
+    "budget": 3500000,
+    "deadline": "2027-03-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 8,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-Driven Traffic Flow Optimization",
+    "description": "Algorithm to reduce congestion in cities.",
+    "field": "人工智能",
+    "budget": 600000,
+    "deadline": "2026-04-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 40,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big Data Analytics for Personalized Medicine",
+    "description": "Process genomic data for tailored treatments.",
+    "field": "大数据",
+    "budget": 750000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Waste-to-Energy Conversion System",
+    "description": "Convert organic waste into biofuel for energy production.",
+    "field": "环保科技",
+    "budget": 450000,
+    "deadline": "2026-07-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 35,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Antibody Drug Conjugates for Cancer",
+    "description": "Targeted therapy with minimal side effects.",
+    "field": "生物医药",
+    "budget": 2000000,
+    "deadline": "2028-02-28T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 2,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum Secure Communication Network",
+    "description": "Unhackable communication using quantum mechanics.",
+    "field": "量子通信",
+    "budget": 900000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 50,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Carbon Capture and Storage Technology",
+    "description": "Technology to capture and store carbon dioxide emissions.",
+    "field": "碳中和",
+    "budget": 3000000,
+    "deadline": "2026-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 15,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain for Transparent Supply Chain",
+    "description": "Track goods from production to consumer.",
+    "field": "区块链",
+    "budget": 550000,
+    "deadline": "2027-08-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 42,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-powered diagnostic tool for early disease detection",
+    "description": "Develop an AI model for analyzing medical images to detect diseases early.",
+    "field": "人工智能",
+    "budget": 600000,
+    "deadline": "2027-12-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 12,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Smart grid system for energy optimization",
+    "description": "IoT-based system to monitor and optimize energy distribution in buildings.",
+    "field": "物联网",
+    "budget": 750000,
+    "deadline": "2026-06-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 34,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Big data analytics for customer behavior",
+    "description": "Process and analyze large datasets to predict consumer trends.",
+    "field": "大数据",
+    "budget": 800000,
+    "deadline": "2027-11-30T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 56,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Compact hydrogen fuel cells for portable electronics",
+    "description": "Efficient hydrogen fuel cells for powering mobile devices.",
+    "field": "新能源",
+    "budget": 500000,
+    "deadline": "2026-05-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 7,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Portable genetic testing kit",
+    "description": "Device for rapid DNA analysis in field conditions.",
+    "field": "生物医药",
+    "budget": 900000,
+    "deadline": "2027-07-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 89,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Blockchain-based voting system",
+    "description": "Secure and transparent voting platform using blockchain.",
+    "field": "区块链",
+    "budget": 1000000,
+    "deadline": "2026-08-31T23:59:59",
+    "type": "REWARD",
+    "ownerId": 45,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "AI-enhanced automated quality control",
+    "description": "Cameras for defect detection in factory production lines.",
+    "field": "智能制造",
+    "budget": 550000,
+    "deadline": "2027-10-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 23,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Digital twin for product lifecycle management",
+    "description": "Virtual replica to simulate and optimize product performance.",
+    "field": "数字孪生",
+    "budget": 850000,
+    "deadline": "2027-02-28T23:59:59",
+    "type": "REWARD",
+    "ownerId": 19,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Quantum key distribution system",
+    "description": "Secure communication using quantum principles for unbreakable encryption.",
+    "field": "量子通信",
+    "budget": 950000,
+    "deadline": "2027-01-31T23:59:59",
+    "type": "NORMAL",
+    "ownerId": 41,
+    "status": "PUBLISHED"
+  },
+  {
+    "title": "Carbon capture technology for industrial emissions",
+    "description": "Efficient method to capture and store CO2 from factories.",
+    "field": "碳中和",
+    "budget": 700000,
+    "deadline": "2027-09-30T23:59:59",
+    "type": "REWARD",
+    "ownerId": 50,
+    "status": "PUBLISHED"
+  }
+]

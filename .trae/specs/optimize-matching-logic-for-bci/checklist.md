@@ -1,0 +1,4 @@
+- [ ] `AIService.java` `extractKeywords` prompt includes `subField` and `application` extraction.
+- [ ] `AIService.java` `extractGraphData` prompt restricts relationship types.
+- [ ] `MatchingService.java` implements `subField` and `application` based scoring.
+- [ ] BCI search results do NOT include unrelated industrial/traffic achievements (verified via test).

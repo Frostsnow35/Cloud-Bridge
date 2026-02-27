@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 1000ms
+      repositories:
+        enabled: false # Disable Redis repositories for test
+    neo4j:
+      uri: bolt://localhost:7687
+      authentication:
+        username: neo4j
+        password: password
+      repositories:
+        enabled: false # Disable Neo4j repositories for test if possible, or mock it
+
+# Disable Neo4j Auto-configuration if needed, but easier to just mock beans if possible
+# For now, let's just hope Neo4j doesn't block startup if lazy, but usually it does.
+# So we might need to exclude Neo4jAutoConfiguration in test.
+
+ai:
+  api:
+    url: http://36.140.97.212:9004/v1/chat/completions
+    key: sk-my-secret-key-888
+    model: qwen2.5-72B
+
+es:
+  url: http://localhost:9200

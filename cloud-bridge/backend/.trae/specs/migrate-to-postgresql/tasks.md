@@ -1,0 +1,17 @@
+# Tasks
+- [x] Task 1: 基础设施配置 (Infrastructure)
+  - [x] SubTask 1.1: 更新 `docker-compose.yml`，添加 PostgreSQL 服务定义。
+    - [x] 定义服务名 `postgres`，镜像 `postgres:15`。
+    - [x] 映射端口 `5432:5432`。
+    - [x] 配置环境变量 `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`。
+    - [x] 挂载数据卷 `./data/postgres:/var/lib/postgresql/data`。
+- [x] Task 2: 后端依赖与配置 (Backend)
+  - [x] SubTask 2.1: 在 `pom.xml` 中添加 PostgreSQL 驱动依赖。
+  - [x] SubTask 2.2: 修改 `application.yml`，指向 PostgreSQL。
+    - [x] 更新 `spring.datasource.url`。
+    - [x] 更新 `spring.datasource.username` 和 `password`。
+    - [x] 更新 `spring.jpa.database-platform`。
+- [x] Task 3: 验证迁移 (Verify)
+  - [x] SubTask 3.1: 启动 Docker Compose，确保 PostgreSQL 运行。
+  - [x] SubTask 3.2: 启动后端应用，检查日志是否连接成功。
+  - [x] SubTask 3.3: 检查数据库表是否创建，数据是否初始化。

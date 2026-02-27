@@ -1,0 +1,9 @@
+{
+  "title": "PERSISTENCE_TEST_123",
+  "description": "Test Description",
+  "field": "IT",
+  "maturity": "Mature",
+  "price": 100.0,
+  "ownerId": 1,
+  "status": "PUBLISHED"
+}

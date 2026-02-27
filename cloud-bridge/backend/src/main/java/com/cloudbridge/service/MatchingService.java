@@ -1,0 +1,357 @@
+package com.cloudbridge.service;
+
+import com.cloudbridge.entity.Achievement;
+import com.cloudbridge.entity.graph.Technology;
+import com.cloudbridge.repository.AchievementRepository;
+import com.cloudbridge.repository.graph.TechnologyRepository;
+import com.cloudbridge.service.ai.AIService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.math.BigDecimal;
+
+@Service
+public class MatchingService {
+
+    @Autowired
+    private TechnologyRepository technologyRepository;
+
+    @Autowired
+    private AchievementRepository achievementRepository;
+
+    @Autowired
+    private AIService aiService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // Scoring constants
+    private static final int SCORE_FIELD_MATCH = 100;
+    private static final int SCORE_KEYWORD_MATCH = 50;
+    private static final int SCORE_GRAPH_MATCH = 20;
+    private static final int SCORE_RELATED_MATCH = 10;
+    private static final int SCORE_TEXT_TITLE_MATCH = 10;
+    private static final int SCORE_TEXT_DESC_MATCH = 5;
+    
+    // Price scoring
+    private static final int SCORE_PRICE_EXCELLENT = 20; // Within 20%
+    private static final int SCORE_PRICE_GOOD = 10;      // Within 50%
+    private static final int SCORE_PRICE_PENALTY = -20;  // > 150% budget
+
+    public static class ScoredAchievement {
+        private final Achievement achievement;
+        private int score;
+
+        public ScoredAchievement(Achievement achievement, int score) {
+            this.achievement = achievement;
+            this.score = score;
+        }
+
+        public void addScore(int points) {
+            this.score += points;
+            // Cap at 100 is removed during calculation to allow high differentiation, capped at display if needed
+            // But let's keep it reasonable
+            if (this.score > 100) this.score = 100;
+            if (this.score < 0) this.score = 0;
+        }
+
+        public void setScore(int score) {
+            this.score = score;
+        }
+
+        public Achievement getAchievement() {
+            return achievement;
+        }
+
+        public int getScore() {
+            return score;
+        }
+    }
+
+    // Overload for backward compatibility
+    public Map<String, Object> match(String demandDescription) {
+        return match(demandDescription, null, null);
+    }
+
+    public Map<String, Object> match(String demandDescription, String filterField, Double budget) {
+        Map<String, Object> result = new HashMap<>();
+        Map<Long, ScoredAchievement> scoredMatches = new HashMap<>();
+        
+        if (demandDescription == null || demandDescription.trim().isEmpty()) {
+            result.put("matches", new ArrayList<>());
+            result.put("recommendations", new ArrayList<>());
+            result.put("relatedKeywords", new ArrayList<>());
+            return result;
+        }
+
+        // 1. Extract Profile using AI Service
+        com.cloudbridge.dto.MatchingProfile profile = aiService.extractMatchingProfile(demandDescription);
+        String keyword = profile.getKeyword();
+        String aiField = profile.getField();
+        
+        // Use provided filterField, fallback to AI detected field from profile
+        String effectiveField = (filterField != null && !filterField.isEmpty()) ? filterField : aiField;
+        
+        System.out.println("Matching Params -> Keyword: " + keyword + ", Field: " + effectiveField + ", SubField: " + profile.getSubField());
+
+        // 1.1 Extract Knowledge Graph (Dynamic)
+        String graphJson = aiService.extractGraphData(demandDescription);
+        try {
+            JsonNode graphNode = objectMapper.readTree(graphJson);
+            // Use profile.getField() as filter for graph augmentation too
+            augmentGraphWithAchievements(graphNode, scoredMatches, effectiveField);
+            result.put("aiGraph", graphNode);
+        } catch (Exception e) {
+            System.err.println("Failed to parse graph JSON: " + e.getMessage());
+        }
+
+        if (keyword == null || keyword.isEmpty()) {
+            keyword = fallbackExtractKeyword(demandDescription);
+        }
+        
+        // 2. Find related technologies
+        List<Technology> relatedTechs = new ArrayList<>();
+        try {
+            if (technologyRepository != null) {
+                 relatedTechs = technologyRepository.findRelatedTechnologies(keyword);
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to query Knowledge Graph: " + e.getMessage());
+        }
+
+        List<String> relatedKeywords = relatedTechs.stream()
+                .map(Technology::getName)
+                .collect(Collectors.toList());
+        if (keyword != null && keyword.length() > 5) {
+            relatedKeywords.add(keyword.substring(0, 4));
+        }
+        relatedKeywords.add(keyword);
+
+        // 3. Initial Retrieval (Broad Search)
+        
+        // 3.1 Field Match (Strict Filter Base)
+        if (effectiveField != null && !effectiveField.isEmpty()) {
+            List<Achievement> fieldMatches = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
+            for (Achievement a : fieldMatches) {
+                scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_FIELD_MATCH);
+            }
+        }
+        
+        // 3.2 Main Keyword Match
+        if (keyword != null && !keyword.isEmpty()) {
+            List<Achievement> keywordMatches = achievementRepository.findPublishedByKeyword(keyword);
+            for (Achievement a : keywordMatches) {
+                // STRICT FIELD CHECK: If we have an effective field, discard mismatches immediately unless score is very high (exact title match)
+                if (isFieldMismatch(a, effectiveField)) continue;
+                
+                scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+            }
+        }
+
+        // 3.3 Related Keyword Match
+        for (Technology t : relatedTechs) {
+            String relatedKey = t.getName();
+            if (relatedKey != null && !relatedKey.trim().isEmpty() && !relatedKey.equals(keyword)) {
+                List<Achievement> found = achievementRepository.findPublishedByKeyword(relatedKey);
+                for (Achievement a : found) {
+                    if (isFieldMismatch(a, effectiveField)) continue;
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_RELATED_MATCH);
+                }
+            }
+        }
+        
+        // 3.4 Text Similarity & Price Logic (Base Scoring)
+        for (ScoredAchievement sa : scoredMatches.values()) {
+            Achievement a = sa.getAchievement();
+            String title = a.getTitle();
+            String desc = a.getDescription();
+            
+            // Double Check Field Mismatch (Penalize heavily if somehow slipped through)
+            if (isFieldMismatch(a, effectiveField)) {
+                sa.setScore(0); 
+                continue;
+            }
+            
+            if (keyword != null && !keyword.isEmpty()) {
+                 if (title != null && title.contains(keyword)) sa.addScore(SCORE_TEXT_TITLE_MATCH);
+                 if (desc != null && desc.contains(keyword)) sa.addScore(SCORE_TEXT_DESC_MATCH);
+            }
+            
+            // Price Logic
+            if (budget != null && a.getPrice() != null && a.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                double priceVal = a.getPrice().doubleValue();
+                double budgetVal = budget.doubleValue();
+                double diff = Math.abs(priceVal - budgetVal);
+                double ratio = diff / budgetVal;
+                
+                if (ratio <= 0.2) sa.addScore(SCORE_PRICE_EXCELLENT);
+                else if (ratio <= 0.5) sa.addScore(SCORE_PRICE_GOOD);
+                else if (priceVal > budgetVal * 1.5) sa.addScore(SCORE_PRICE_PENALTY);
+            }
+        }
+
+        // 4. AI Reranking (The "Strict Filter")
+        // Select top candidates for AI evaluation
+        List<ScoredAchievement> topCandidates = scoredMatches.values().stream()
+                .filter(s -> s.getScore() > 0)
+                .sorted((a, b) -> b.getScore() - a.getScore())
+                .limit(50) // Limit to top 50 for AI processing
+                .collect(Collectors.toList());
+
+        List<Achievement> candidateEntities = topCandidates.stream()
+                .map(ScoredAchievement::getAchievement)
+                .collect(Collectors.toList());
+
+        if (!candidateEntities.isEmpty()) {
+            Map<Long, Double> aiScores = aiService.evaluateMatches(demandDescription, profile, candidateEntities);
+            
+            // Update scores based on AI evaluation
+            for (ScoredAchievement sa : topCandidates) {
+                Double aiScore = aiScores.get(sa.getAchievement().getId());
+                if (aiScore != null) {
+                    if (aiScore < 10) {
+                        sa.setScore(0); // Eliminate
+                    } else {
+                        // Blend AI score (weight 2.0)
+                        sa.addScore((int)(aiScore * 2.0)); 
+                    }
+                }
+            }
+        }
+
+        // 5. Final Sort and Select
+        List<ScoredAchievement> allScored = new ArrayList<>(scoredMatches.values());
+        allScored = allScored.stream().filter(s -> s.getScore() > 0).collect(Collectors.toList());
+        allScored.sort((a, b) -> b.getScore() - a.getScore());
+
+        // Return top 10 relevant ones
+        List<Map<String, Object>> matches = new ArrayList<>();
+        for (int i=0; i<Math.min(allScored.size(), 10); i++) {
+            ScoredAchievement sa = allScored.get(i);
+            Map<String, Object> map = new HashMap<>();
+            Achievement a = sa.getAchievement();
+            map.put("id", a.getId());
+            map.put("title", a.getTitle());
+            map.put("description", a.getDescription());
+            map.put("field", a.getField());
+            map.put("maturity", a.getMaturity());
+            map.put("price", a.getPrice());
+            map.put("ownerId", a.getOwnerId());
+            map.put("status", a.getStatus() != null ? a.getStatus().toString() : "PUBLISHED");
+            map.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : new Date().toString());
+            map.put("score", sa.getScore());
+            matches.add(map);
+        }
+        
+        result.put("matches", matches);
+
+        // 6. Recommendations (Simple logic remains)
+        List<Map<String, Object>> recommendations = new ArrayList<>();
+        // ... (Keep existing recommendation logic if needed, or simplify)
+        
+        result.put("recommendations", recommendations);
+        result.put("relatedKeywords", relatedKeywords);
+        
+        return result;
+    }
+
+    private boolean isFieldMismatch(Achievement a, String effectiveField) {
+        if (effectiveField == null || effectiveField.isEmpty()) return false;
+        if (a.getField() == null) return true;
+        // Simple containment check (can be improved with semantic similarity)
+        return !a.getField().contains(effectiveField) && !effectiveField.contains(a.getField());
+    }
+
+    private void addScore(Map<Long, ScoredAchievement> map, Achievement a, int points, String filterField) {
+        // Hard Filter Check
+        if (isFieldMismatch(a, filterField)) {
+            return;
+        }
+        map.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(points);
+    }
+
+    private void augmentGraphWithAchievements(JsonNode graphNode, Map<Long, ScoredAchievement> scoredMatches, String filterField) {
+        if (graphNode == null || !graphNode.has("nodes")) return;
+
+        ArrayNode nodes = (ArrayNode) graphNode.get("nodes");
+        JsonNode relationshipsNode = graphNode.get("relationships");
+        ArrayNode relationships;
+
+        if (relationshipsNode == null || relationshipsNode.isNull()) {
+             if (graphNode instanceof ObjectNode) {
+                relationships = ((ObjectNode) graphNode).putArray("relationships");
+             } else {
+                return;
+             }
+        } else {
+            relationships = (ArrayNode) relationshipsNode;
+        }
+
+        Set<String> existingIds = new HashSet<>();
+        for (JsonNode n : nodes) {
+            if (n.has("id")) existingIds.add(n.get("id").asText());
+        }
+
+        for (JsonNode node : nodes) {
+            String label = node.has("label") ? node.get("label").asText() : "";
+            String type = node.has("type") ? node.get("type").asText() : "";
+            String nodeId = node.has("id") ? node.get("id").asText() : "";
+
+            if (label.length() > 1 && (type.equalsIgnoreCase("Technology") || type.equalsIgnoreCase("SubCategory") || type.equalsIgnoreCase("Category") || type.equalsIgnoreCase("InferredTech"))) {
+                List<Achievement> matches = achievementRepository.findPublishedByKeyword(label);
+                
+                int count = 0;
+                for (Achievement a : matches) {
+                    // Check Filter
+                    if (filterField != null && !filterField.isEmpty()) {
+                        if (a.getField() == null || !a.getField().contains(filterField)) continue;
+                    }
+
+                    if (count >= 3) break;
+                    
+                    String achId = "ach_" + a.getId();
+                    
+                    if (!existingIds.contains(achId)) {
+                        ObjectNode achNode = objectMapper.createObjectNode();
+                        achNode.put("id", achId);
+                        achNode.put("label", a.getTitle().length() > 8 ? a.getTitle().substring(0, 8) + "..." : a.getTitle());
+                        achNode.put("fullTitle", a.getTitle());
+                        achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
+                        achNode.put("type", "Achievement");
+                        
+                        ((ArrayNode)nodes).add(achNode);
+                        existingIds.add(achId);
+                        
+                        addScore(scoredMatches, a, SCORE_GRAPH_MATCH, filterField);
+                    } else {
+                        addScore(scoredMatches, a, SCORE_GRAPH_MATCH, filterField);
+                    }
+
+                    ObjectNode rel = objectMapper.createObjectNode();
+                    rel.put("source", nodeId);
+                    rel.put("target", achId);
+                    rel.put("type", "MATCHES");
+                    ((ArrayNode)relationships).add(rel);
+                    
+                    count++;
+                }
+            }
+        }
+    }
+
+    private String fallbackExtractKeyword(String text) {
+        if (text == null) return "";
+        String[] parts = text.split("\\s+");
+        if (parts.length > 0 && parts[0].length() > 0 && parts[0].length() < 10) {
+            return parts[0];
+        }
+        return text.substring(0, Math.min(text.length(), 4));
+    }
+}

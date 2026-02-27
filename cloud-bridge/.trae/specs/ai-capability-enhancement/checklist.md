@@ -1,0 +1,7 @@
+- [x] Data schemas (JSON/POJO) for Policy, Fund, Equipment, Expert defined.
+- [x] Elasticsearch indices created and mapped.
+- [x] Sample data loaded into ES (at least 5 items per category).
+- [x] `AIService` successfully retrieves context from ES before calling LLM.
+- [x] KG extraction prompt includes CoT and produces correct JSON structure.
+- [x] Analysis prompt includes RAG context and references specific policies/funds.
+- [x] `DataSynthesisService` generates a valid `training_data.jsonl` file with at least 10 examples.

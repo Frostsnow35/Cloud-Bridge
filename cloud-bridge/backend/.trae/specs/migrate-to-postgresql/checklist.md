@@ -1,0 +1,5 @@
+- [x] Docker Compose 可以正常启动 PostgreSQL 服务。
+- [x] 后端应用日志中显示连接 PostgreSQL 成功。
+- [x] PostgreSQL 中创建了 `cloud_bridge` 数据库。
+- [x] 数据库表中包含 `Achievement` 和 `Demand` 的初始化数据。
+- [x] 停止并重启服务后，数据依然存在。

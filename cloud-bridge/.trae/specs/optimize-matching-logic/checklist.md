@@ -1,0 +1,3 @@
+- [ ] Checkpoint: Medical demand returns only Medical or highly relevant AI achievements (Score > 100)
+- [ ] Checkpoint: Transport achievements are filtered out or ranked low (Score < 30)
+- [ ] Checkpoint: AI graph data for "Artificial Intelligence" and "Big Data" is populated

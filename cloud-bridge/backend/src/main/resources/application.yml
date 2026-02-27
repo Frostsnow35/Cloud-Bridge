@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: cloud-bridge-backend
+  datasource:
+    # Use H2 for MVP if Docker is not available
+    url: jdbc:h2:file:./data/cloud_bridge;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  data:
+    elasticsearch:
+      client:
+        reactive:
+          endpoints: ${SPRING_ELASTICSEARCH_URIS:localhost:9200}
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      repositories:
+        enabled: false
+    neo4j:
+      repositories:
+        enabled: false
+  neo4j:
+    uri: ${SPRING_NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${SPRING_NEO4J_AUTHENTICATION_USERNAME:neo4j}
+      password: ${SPRING_NEO4J_AUTHENTICATION_PASSWORD:password} 
+
+es:
+  url: ${ES_URL:http://localhost:9200}
+
+ai:
+  api:
+    url: ${AI_API_URL:http://36.140.97.212:9004/v1/chat/completions}
+    key: ${AI_API_KEY:sk-my-secret-key-888}
+    model: ${AI_API_MODEL:Qwen2.5-72B}
+
+fisco:
+  network:
+    peers:
+      - "127.0.0.1:20200"
+  cryptoMaterial:
+    certPath: "conf"
+  account:
+    keyPath: "conf"
+    accountAddress: ""
+  contract:
+    evidenceAddress: ""
+
+file:
+  upload-dir: uploads
+
+server:
+  port: 8080
+
+logging:
+  file:
+    name: backend.log
+  level:
+    root: INFO
+    com.cloudbridge: DEBUG
+    org.neo4j: OFF
+    org.springframework.data.neo4j: OFF

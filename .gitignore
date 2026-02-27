@@ -1,0 +1,40 @@
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+*.log.*
+logs/
+cloud-bridge/backend/logs/
+
+# Build artifacts
+target/
+node_modules/
+dist/
+build/
+out/
+
+# Database data
+cloud-bridge/backend/data/neo4j/
+cloud-bridge/backend/data/postgres/
+cloud-bridge/backend/data/*.db
+cloud-bridge/backend/data/*.lock
+*.db
+*.sqlite
+*.mv.db
+*.trace.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Sensitive files
+ai-name-apikey.txt
+secrets.properties
+application-secret.yml
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,5 @@
+- [x] `SearchService.searchAll` retrieves results from all 6 libraries
+- [x] `AIService.analyzeDemandWithFullRAG` uses context from Patents and Enterprises
+- [x] `AIService.generateResourceGraph` creates a valid node-link JSON
+- [x] `AIController` exposes `/api/ai/analyze-full` and `/api/ai/graph`
+- [x] `chatWithIntent` correctly identifies intents for new libraries

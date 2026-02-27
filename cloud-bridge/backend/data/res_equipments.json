@@ -1,0 +1,272 @@
+[
+  {
+    "id": 1,
+    "name": "高通量基因测序仪",
+    "model": "Model-841",
+    "provider": "医科大学附属医院",
+    "field": "生物医药",
+    "status": "AVAILABLE",
+    "description": "高性能高通量基因测序仪，可用于生物医药领域的科研测试。",
+    "price": "1179元/小时"
+  },
+  {
+    "id": 2,
+    "name": "冷冻电镜",
+    "model": "Model-383",
+    "provider": "生命科学研究所",
+    "field": "生物医药",
+    "status": "AVAILABLE",
+    "description": "高性能冷冻电镜，可用于生物医药领域的科研测试。",
+    "price": "1964元/小时"
+  },
+  {
+    "id": 3,
+    "name": "流式细胞仪",
+    "model": "Model-610",
+    "provider": "医科大学附属医院",
+    "field": "生物医药",
+    "status": "AVAILABLE",
+    "description": "高性能流式细胞仪，可用于生物医药领域的科研测试。",
+    "price": "1232元/小时"
+  },
+  {
+    "id": 4,
+    "name": "扫描电子显微镜(SEM)",
+    "model": "Model-751",
+    "provider": "未来科技材料公司",
+    "field": "新材料",
+    "status": "AVAILABLE",
+    "description": "高性能扫描电子显微镜(SEM)，可用于新材料领域的科研测试。",
+    "price": "1812元/小时"
+  },
+  {
+    "id": 5,
+    "name": "X射线衍射仪(XRD)",
+    "model": "Model-180",
+    "provider": "航空航天材料所",
+    "field": "新材料",
+    "status": "AVAILABLE",
+    "description": "高性能X射线衍射仪(XRD)，可用于新材料领域的科研测试。",
+    "price": "1445元/小时"
+  },
+  {
+    "id": 6,
+    "name": "磁控溅射镀膜机",
+    "model": "Model-338",
+    "provider": "未来科技材料公司",
+    "field": "新材料",
+    "status": "AVAILABLE",
+    "description": "高性能磁控溅射镀膜机，可用于新材料领域的科研测试。",
+    "price": "622元/小时"
+  },
+  {
+    "id": 7,
+    "name": "电池充放电测试柜",
+    "model": "Model-514",
+    "provider": "储能技术研究中心",
+    "field": "新能源",
+    "status": "AVAILABLE",
+    "description": "高性能电池充放电测试柜，可用于新能源领域的科研测试。",
+    "price": "689元/小时"
+  },
+  {
+    "id": 8,
+    "name": "太阳能模拟器",
+    "model": "Model-496",
+    "provider": "储能技术研究中心",
+    "field": "新能源",
+    "status": "AVAILABLE",
+    "description": "高性能太阳能模拟器，可用于新能源领域的科研测试。",
+    "price": "1524元/小时"
+  },
+  {
+    "id": 9,
+    "name": "电化学工作站",
+    "model": "Model-179",
+    "provider": "储能技术研究中心",
+    "field": "新能源",
+    "status": "AVAILABLE",
+    "description": "高性能电化学工作站，可用于新能源领域的科研测试。",
+    "price": "1029元/小时"
+  },
+  {
+    "id": 10,
+    "name": "GPU超算服务器",
+    "model": "Model-890",
+    "provider": "大学计算机学院",
+    "field": "新一代信息技术",
+    "status": "AVAILABLE",
+    "description": "高性能GPU超算服务器，可用于新一代信息技术领域的科研测试。",
+    "price": "567元/小时"
+  },
+  {
+    "id": 11,
+    "name": "5G基站测试仪",
+    "model": "Model-562",
+    "provider": "大数据创新中心",
+    "field": "新一代信息技术",
+    "status": "AVAILABLE",
+    "description": "高性能5G基站测试仪，可用于新一代信息技术领域的科研测试。",
+    "price": "532元/小时"
+  },
+  {
+    "id": 12,
+    "name": "工业相机",
+    "model": "Model-820",
+    "provider": "智算科技公司",
+    "field": "新一代信息技术",
+    "status": "AVAILABLE",
+    "description": "高性能工业相机，可用于新一代信息技术领域的科研测试。",
+    "price": "1102元/小时"
+  },
+  {
+    "id": 13,
+    "name": "六轴工业机器人",
+    "model": "Model-459",
+    "provider": "数字化工厂实验室",
+    "field": "智能制造",
+    "status": "AVAILABLE",
+    "description": "高性能六轴工业机器人，可用于智能制造领域的科研测试。",
+    "price": "1493元/小时"
+  },
+  {
+    "id": 14,
+    "name": "数控加工中心(CNC)",
+    "model": "Model-440",
+    "provider": "工业自动化研究所",
+    "field": "智能制造",
+    "status": "AVAILABLE",
+    "description": "高性能数控加工中心(CNC)，可用于智能制造领域的科研测试。",
+    "price": "759元/小时"
+  },
+  {
+    "id": 15,
+    "name": "激光切割机",
+    "model": "Model-840",
+    "provider": "工业自动化研究所",
+    "field": "智能制造",
+    "status": "AVAILABLE",
+    "description": "高性能激光切割机，可用于智能制造领域的科研测试。",
+    "price": "1052元/小时"
+  },
+  {
+    "id": 16,
+    "name": "大型锻压机",
+    "model": "Model-963",
+    "provider": "机械科学研究总院",
+    "field": "高端装备",
+    "status": "AVAILABLE",
+    "description": "高性能大型锻压机，可用于高端装备领域的科研测试。",
+    "price": "1473元/小时"
+  },
+  {
+    "id": 17,
+    "name": "真空电子束焊机",
+    "model": "Model-906",
+    "provider": "航空航天动力所",
+    "field": "高端装备",
+    "status": "AVAILABLE",
+    "description": "高性能真空电子束焊机，可用于高端装备领域的科研测试。",
+    "price": "893元/小时"
+  },
+  {
+    "id": 18,
+    "name": "超声波探伤仪",
+    "model": "Model-918",
+    "provider": "重型机械研究院",
+    "field": "高端装备",
+    "status": "AVAILABLE",
+    "description": "高性能超声波探伤仪，可用于高端装备领域的科研测试。",
+    "price": "1821元/小时"
+  },
+  {
+    "id": 19,
+    "name": "气相色谱质谱联用仪",
+    "model": "Model-232",
+    "provider": "水处理技术实验室",
+    "field": "绿色环保",
+    "status": "AVAILABLE",
+    "description": "高性能气相色谱质谱联用仪，可用于绿色环保领域的科研测试。",
+    "price": "1539元/小时"
+  },
+  {
+    "id": 20,
+    "name": "水质自动监测站",
+    "model": "Model-194",
+    "provider": "生态环境工程中心",
+    "field": "绿色环保",
+    "status": "AVAILABLE",
+    "description": "高性能水质自动监测站，可用于绿色环保领域的科研测试。",
+    "price": "1973元/小时"
+  },
+  {
+    "id": 21,
+    "name": "等离子焚烧炉",
+    "model": "Model-142",
+    "provider": "环境科学研究院",
+    "field": "绿色环保",
+    "status": "AVAILABLE",
+    "description": "高性能等离子焚烧炉，可用于绿色环保领域的科研测试。",
+    "price": "1980元/小时"
+  },
+  {
+    "id": 22,
+    "name": "8K摄影机",
+    "model": "Model-423",
+    "provider": "动漫游戏研发中心",
+    "field": "数字创意",
+    "status": "AVAILABLE",
+    "description": "高性能8K摄影机，可用于数字创意领域的科研测试。",
+    "price": "1699元/小时"
+  },
+  {
+    "id": 23,
+    "name": "动作捕捉系统",
+    "model": "Model-330",
+    "provider": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AVAILABLE",
+    "description": "高性能动作捕捉系统，可用于数字创意领域的科研测试。",
+    "price": "1348元/小时"
+  },
+  {
+    "id": 24,
+    "name": "高性能图形工作站",
+    "model": "Model-700",
+    "provider": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AVAILABLE",
+    "description": "高性能高性能图形工作站，可用于数字创意领域的科研测试。",
+    "price": "898元/小时"
+  },
+  {
+    "id": 25,
+    "name": "单光子探测器",
+    "model": "Model-983",
+    "provider": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AVAILABLE",
+    "description": "高性能单光子探测器，可用于未来产业领域的科研测试。",
+    "price": "791元/小时"
+  },
+  {
+    "id": 26,
+    "name": "脑电采集仪",
+    "model": "Model-653",
+    "provider": "航天科技集团",
+    "field": "未来产业",
+    "status": "AVAILABLE",
+    "description": "高性能脑电采集仪，可用于未来产业领域的科研测试。",
+    "price": "734元/小时"
+  },
+  {
+    "id": 27,
+    "name": "超高真空扫描隧道显微镜",
+    "model": "Model-673",
+    "provider": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AVAILABLE",
+    "description": "高性能超高真空扫描隧道显微镜，可用于未来产业领域的科研测试。",
+    "price": "1609元/小时"
+  }
+]

@@ -1,0 +1,5 @@
+- [x] Backend config updated with valid API Key
+- [x] `MatchingService` strictly filters by field (no cross-domain results)
+- [x] Fallback logic (latest items) removed from `MatchingService`
+- [x] Frontend displays real backend scores (no random numbers)
+- [x] Search for "Carbon Capture" returns only "Carbon Neutrality" items or nothing

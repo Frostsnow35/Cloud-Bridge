@@ -1,0 +1,50 @@
+{"id": "1", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "In Use"}
+{"id": "2", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "3", "name": "高性能金融科技测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "Available"}
+{"id": "4", "name": "高性能金融科技测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "In Use"}
+{"id": "5", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "北京大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "Available"}
+{"id": "6", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "In Use"}
+{"id": "7", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "In Use"}
+{"id": "8", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "In Use"}
+{"id": "9", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "10", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "In Use"}
+{"id": "11", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "Available"}
+{"id": "12", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "Available"}
+{"id": "13", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "北京大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "Available"}
+{"id": "14", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "In Use"}
+{"id": "15", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
+{"id": "16", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "Available"}
+{"id": "17", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "18", "name": "高性能新能源测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "In Use"}
+{"id": "19", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "20", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "Available"}
+{"id": "21", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "Available"}
+{"id": "22", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "Available"}
+{"id": "23", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "24", "name": "高性能金融科技测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "25", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "In Use"}
+{"id": "26", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "In Use"}
+{"id": "27", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "Available"}
+{"id": "28", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "29", "name": "高性能金融科技测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "中国科学技术大学", "availability": "In Use"}
+{"id": "30", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "31", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
+{"id": "32", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "Available"}
+{"id": "33", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "上海交通大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "34", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "35", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "Available"}
+{"id": "36", "name": "高性能新能源测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "Available"}
+{"id": "37", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "38", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "北京大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "Available"}
+{"id": "39", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "Available"}
+{"id": "40", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "中国科学技术大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "清华大学", "availability": "Available"}
+{"id": "41", "name": "高性能新材料测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "上海交通大学", "availability": "In Use"}
+{"id": "42", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "In Use"}
+{"id": "43", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
+{"id": "44", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "浙江大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "Available"}
+{"id": "45", "name": "高性能环保科技测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "北京大学", "availability": "Available"}
+{"id": "46", "name": "高性能金融科技测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
+{"id": "47", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
+{"id": "48", "name": "高性能智能制造测试平台", "category": "研发设备", "facilityName": "复旦大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "In Use"}
+{"id": "49", "name": "高性能生物医药测试平台", "category": "研发设备", "facilityName": "北京大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "复旦大学", "availability": "Available"}
+{"id": "50", "name": "高性能人工智能测试平台", "category": "研发设备", "facilityName": "清华大学分析测试中心", "specs": "分辨率<1nm，灵敏度>99%", "owner": "浙江大学", "availability": "In Use"}
