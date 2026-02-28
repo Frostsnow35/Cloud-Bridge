@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure Services ---
+  postgres:
+    image: postgres:15
+    container_name: cloud-bridge-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: cloudbridge
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: cloud_bridge
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./cloud-bridge/backend/data/postgres:/var/lib/postgresql/data
+    networks:
+      - cloud-bridge-net
+
+  neo4j:
+    image: neo4j:5.18.0
+    container_name: cloud-bridge-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - ./cloud-bridge/backend/data/neo4j/data:/data
+      - ./cloud-bridge/backend/data/neo4j/logs:/logs
+      - ./cloud-bridge/backend/data/neo4j/import:/var/lib/neo4j/import
+      - ./cloud-bridge/backend/data/neo4j/plugins:/plugins
+    networks:
+      - cloud-bridge-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    container_name: cloud-bridge-es
+    environment:
+      - node.name=cloud-bridge-es
+      - cluster.name=cloud-bridge-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./cloud-bridge/backend/data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - cloud-bridge-net
+
+  # --- Application Services ---
+  backend:
+    build:
+      context: ./cloud-bridge/backend
+      dockerfile: Dockerfile
+    container_name: cloud-bridge-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Connect to Docker services
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cloud_bridge
+      SPRING_DATASOURCE_USERNAME: cloudbridge
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_DRIVER-CLASS-NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_ELASTICSEARCH_URIS: elasticsearch:9200
+      ES_URL: http://elasticsearch:9200
+      SPRING_NEO4J_URI: bolt://neo4j:7687
+      SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
+      SPRING_NEO4J_AUTHENTICATION_PASSWORD: password
+      # Use H2 if Postgres fails? No, we enforce Postgres here.
+    depends_on:
+      - postgres
+      - neo4j
+      - elasticsearch
+    networks:
+      - cloud-bridge-net
+
+  frontend:
+    build:
+      context: ./cloud-bridge/frontend
+      dockerfile: Dockerfile
+    container_name: cloud-bridge-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - cloud-bridge-net
+
+networks:
+  cloud-bridge-net:
+    driver: bridge
