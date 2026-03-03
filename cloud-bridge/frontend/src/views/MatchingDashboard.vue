@@ -317,7 +317,7 @@ const startMatching = async () => {
             }
         }, 200)
 
-        let graphData
+        let graphData: any
         try {
             graphData = await analysisPromise
             clearInterval(timer)
