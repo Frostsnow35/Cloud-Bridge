@@ -31,7 +31,8 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("=== RAGDataSeeder STARTED ===");
         try {
             // New CSV seeders (Prioritized)
-            seedAchievementsFromCSV();
+            // Note: seedAchievementsFromCSV is now REPLACED by seedAchievementsFromExpertCSV as requested
+            seedAchievementsFromExpertCSV();
             seedPublicPlatformsFromCSV();
             
             // Legacy seeders
@@ -48,8 +49,71 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("=== RAGDataSeeder FINISHED ===");
     }
 
-    private void seedAchievementsFromCSV() {
-        // ... (keep as is or update if needed)
+    // Renamed and updated to use the expert CSV as the SOLE source of Achievements
+    private void seedAchievementsFromExpertCSV() {
+        System.err.println("Attempting to seed Achievements from Expert CSV...");
+        Path path = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
+        
+        if (!Files.exists(path)) {
+            System.err.println("CRITICAL: Achievement CSV NOT FOUND at: " + path.toAbsolutePath());
+            return;
+        }
+
+        try {
+            // Clear existing achievements to ensure clean state
+            System.err.println("Clearing existing achievements...");
+            achievementRepository.deleteAll();
+            
+            // Try GBK encoding first
+            List<String> lines = null;
+            try {
+                lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
+            } catch (Exception e) {
+                System.err.println("GBK read failed for Expert CSV, trying UTF-8...");
+                lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
+            }
+            
+            if (lines == null || lines.isEmpty()) {
+                System.err.println("Achievement CSV is empty.");
+                return;
+            }
+
+            // Header: 创建时间,领域,更新时间
+            // We will map "领域" to Achievement Title/Field
+            List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
+            int count = 0;
+            
+            for (String line : dataLines) {
+                String[] parts = line.split(",");
+                // Expected at least 2 parts (Time, Field)
+                if (parts.length < 2) continue;
+                
+                String createTime = getPart(parts, 0);
+                String field = getPart(parts, 1);
+                String updateTime = getPart(parts, 2);
+                
+                if (field.isEmpty()) continue;
+
+                Achievement achievement = new Achievement();
+                // Synthesize a title since the CSV only has Field
+                achievement.setTitle(field + "相关研究成果");
+                achievement.setDescription("本成果由" + field + "领域的资深专家团队研发，具有较高的技术创新性和应用价值。");
+                achievement.setField(field);
+                achievement.setMaturity("成熟应用"); // Default
+                achievement.setPrice(new BigDecimal("0.00")); // Default "Negotiable"
+                achievement.setOwnerId(1L); // Default admin owner
+                achievement.setStatus(Achievement.Status.PUBLISHED);
+                
+                // Save to DB
+                achievementRepository.save(achievement);
+                count++;
+            }
+            System.err.println("SUCCESS: Seeded " + count + " Achievements from Expert CSV.");
+            
+        } catch (Exception e) {
+            System.err.println("Failed to seed Achievements from Expert CSV: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void seedPublicPlatformsFromCSV() {
