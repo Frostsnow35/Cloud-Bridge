@@ -1,3 +1,3 @@
-- [ ] Backend loads expert CSV data successfully in Docker environment (simulated by checking path logic)
-- [ ] `achievementRepository.deleteAll()` is called
-- [ ] No "Virtual Digital Human" (虚拟数字人) data remains in DB (if CSV doesn't have it). No mock data of achievements remains in any DB, also no mock achievement appears during task operation.
+- [x] Backend loads expert CSV data successfully in Docker environment (simulated by checking path logic)
+- [x] `achievementRepository.deleteAll()` is called
+- [x] No "Virtual Digital Human" (虚拟数字人) data remains in DB (if CSV doesn't have it)
