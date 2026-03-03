@@ -117,7 +117,7 @@
                         <div class="analyzing-state">
                             <el-progress type="dashboard" :percentage="progress" :color="colors" />
                             <h3 class="analyzing-text">{{ progressText }}</h3>
-                            <p class="analyzing-sub">正在检索全网{{ (progress * 150).toFixed(0) }}条相关资源...</p>
+                            <p class="analyzing-sub">正在检索成果库{{ (progress * 1.5).toFixed(0) }}条相关资源...</p>
                         </div>
                     </template>
                   </div>
@@ -312,7 +312,7 @@ const startMatching = async () => {
                     progressText.value = '正在构建知识图谱...'
                 } else if (progress.value >= 60) {
                     activeStep.value = 3
-                    progressText.value = '正在匹配全网资源...'
+                    progressText.value = '正在匹配库内资源...'
                 }
             }
         }, 200)
@@ -327,29 +327,12 @@ const startMatching = async () => {
         } catch (error) {
             clearInterval(timer)
             console.warn('API Analysis failed', error)
-            // Mock Data Fallback
-            recommendations.value = [
-                { id: 101, title: '高精度脑机接口信号采集系统', price: 150000, score: 95, tags: ['精准匹配', '技术契合'] },
-                { id: 102, title: '基于深度学习的神经康复机器人', price: 280000, score: 88, tags: ['应用场景匹配'] },
-                { id: 103, title: '多模态生物信号分析平台', price: 98000, score: 82, tags: ['数据处理'] }
-            ]
-            graphData = {
-                nodes: [
-                    { id: '0', name: demand.value.title || '核心需求', category: 0, symbolSize: 30 },
-                    { id: '1', name: '政策支持', category: 1, symbolSize: 20 },
-                    { id: '2', name: '专项资金', category: 1, symbolSize: 20 },
-                    { id: '3', name: '关键技术', category: 2, symbolSize: 25 },
-                    { id: '4', name: '领军专家', category: 2, symbolSize: 20 },
-                    { id: '5', name: '合作企业', category: 3, symbolSize: 20 }
-                ],
-                links: [
-                    { source: '0', target: '3' },
-                    { source: '3', target: '1' },
-                    { source: '3', target: '2' },
-                    { source: '3', target: '4' },
-                    { source: '4', target: '5' }
-                ]
-            }
+            // Mock Data Fallback Removed: Do NOT show fake perfect matches
+            recommendations.value = []
+            activeStep.value = 0
+            isAnalyzing.value = false
+            ElMessage.error('匹配分析服务暂时不可用，请稍后重试')
+            return 
         }
         
         if (recommendations.value.length > 0) {
