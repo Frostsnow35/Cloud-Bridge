@@ -1,5 +1,6 @@
 @echo off
-setlocal EnableDelayedExpansion
+cd /d "%~dp0"
+title Cloud Bridge Stopper
 cls
 echo ========================================================
 echo       ÔÆÇÅ (Cloud Bridge) Í£Ö¹·þÎñ½Å±¾

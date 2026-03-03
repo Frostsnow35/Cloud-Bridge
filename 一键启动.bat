@@ -1,5 +1,6 @@
 @echo off
-setlocal EnableDelayedExpansion
+cd /d "%~dp0"
+title Cloud Bridge Launcher
 cls
 echo ========================================================
 echo       云桥 (Cloud Bridge) 一键启动脚本
@@ -11,7 +12,6 @@ docker --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [错误] 未检测到 Docker 环境！
     echo 请先安装 Docker Desktop (Windows) 并启动。
-    echo 下载地址: https://www.docker.com/products/docker-desktop/
     echo.
     pause
     exit /b
