@@ -52,18 +52,35 @@ public class RAGDataSeeder implements CommandLineRunner {
     // Renamed and updated to use the expert CSV as the SOLE source of Achievements
     private void seedAchievementsFromExpertCSV() {
         System.err.println("Attempting to seed Achievements from Expert CSV...");
-        Path path = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
         
-        if (!Files.exists(path)) {
-            System.err.println("CRITICAL: Achievement CSV NOT FOUND at: " + path.toAbsolutePath());
-            return;
+        // Path Resolution Strategy
+        Path path = null;
+        Path dockerPath = Paths.get("/app/datasets/广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
+        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
+        Path relativePath = Paths.get("数据集/广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
+
+        if (Files.exists(dockerPath)) {
+            path = dockerPath;
+            System.err.println("Found CSV in Docker path: " + path.toAbsolutePath());
+        } else if (Files.exists(localPath)) {
+            path = localPath;
+            System.err.println("Found CSV in Local path: " + path.toAbsolutePath());
+        } else if (Files.exists(relativePath)) {
+            path = relativePath;
+            System.err.println("Found CSV in Relative path: " + path.toAbsolutePath());
         }
 
         try {
-            // Clear existing achievements to ensure clean state
+            // ALWAYS Clear existing achievements to ensure clean state
             System.err.println("Clearing existing achievements...");
             achievementRepository.deleteAll();
             
+            if (path == null) {
+                System.err.println("CRITICAL: Achievement CSV NOT FOUND in any expected location.");
+                System.err.println("Checked: " + dockerPath + ", " + localPath + ", " + relativePath);
+                return;
+            }
+
             // Try GBK encoding first
             List<String> lines = null;
             try {
@@ -118,21 +135,26 @@ public class RAGDataSeeder implements CommandLineRunner {
 
     private void seedPublicPlatformsFromCSV() {
         System.err.println("Attempting to seed Public Platforms...");
-        // Use the exact absolute path verified by LS
-        Path path = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区公共数据开放计划.csv");
         
-        if (!Files.exists(path)) {
-            System.err.println("CRITICAL: CSV NOT FOUND at: " + path.toAbsolutePath());
-            // List parent directory
-            try {
-                Path parent = path.getParent();
-                if (Files.exists(parent)) {
-                    System.err.println("Listing files in " + parent + ":");
-                    Files.list(parent).forEach(f -> System.err.println(" - " + f.getFileName()));
-                } else {
-                    System.err.println("Parent directory does not exist: " + parent);
-                }
-            } catch (Exception e) { e.printStackTrace(); }
+        // Path Resolution Strategy
+        Path path = null;
+        Path dockerPath = Paths.get("/app/datasets/广州市白云区公共数据开放计划.csv");
+        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区公共数据开放计划.csv");
+        Path relativePath = Paths.get("数据集/广州市白云区公共数据开放计划.csv");
+
+        if (Files.exists(dockerPath)) {
+            path = dockerPath;
+            System.err.println("Found CSV in Docker path: " + path.toAbsolutePath());
+        } else if (Files.exists(localPath)) {
+            path = localPath;
+            System.err.println("Found CSV in Local path: " + path.toAbsolutePath());
+        } else if (Files.exists(relativePath)) {
+            path = relativePath;
+            System.err.println("Found CSV in Relative path: " + path.toAbsolutePath());
+        }
+        
+        if (path == null) {
+            System.err.println("CRITICAL: Public Platforms CSV NOT FOUND in any expected location.");
             return;
         }
 

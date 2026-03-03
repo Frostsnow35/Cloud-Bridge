@@ -76,6 +76,8 @@ services:
       SPRING_NEO4J_AUTHENTICATION_USERNAME: neo4j
       SPRING_NEO4J_AUTHENTICATION_PASSWORD: password
       # Use H2 if Postgres fails? No, we enforce Postgres here.
+    volumes:
+      - ./数据集:/app/datasets
     depends_on:
       - postgres
       - neo4j
