@@ -52,10 +52,6 @@ public class RAGDataSeeder implements CommandLineRunner {
         Path path = findCsvFile("科技项目", "立项名单");
 
         try {
-            // ALWAYS Clear existing achievements to ensure clean state
-            System.err.println("Clearing existing achievements...");
-            achievementRepository.deleteAll();
-            
             if (path == null) {
                 System.err.println("CRITICAL: Project List CSV NOT FOUND in any expected location.");
                 return;
@@ -74,6 +70,10 @@ public class RAGDataSeeder implements CommandLineRunner {
                 System.err.println("Project CSV is empty.");
                 return;
             }
+
+            // ALWAYS Clear existing achievements ONLY if we successfully read the file
+            System.err.println("Clearing existing achievements...");
+            achievementRepository.deleteAll();
 
             // Header: 承担单位,级别,序号,项目名称,项目批次,支持方向
             List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
