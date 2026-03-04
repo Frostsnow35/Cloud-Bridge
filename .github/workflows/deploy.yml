@@ -38,10 +38,14 @@ jobs:
             cd /opt/cloud-bridge
 
             # 2. Update code
+            # Force git to trust the directory
+            git config --global --add safe.directory /opt/cloud-bridge
+            
             if [ ! -d ".git" ]; then
               git clone https://github.com/Frostsnow35/Cloud-Bridge.git .
             else
-              git pull origin main
+              git fetch origin main
+              git reset --hard origin/main
             fi
 
             # 3. Configure Env
