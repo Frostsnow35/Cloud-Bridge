@@ -52,6 +52,9 @@ public class Achievement {
     @Column(name = "resource_links", columnDefinition = "TEXT")
     private String resourceLinks;
 
+    @Column(name = "tags", columnDefinition = "TEXT")
+    private String tags; // Comma separated tags
+
     @Column(name = "image")
     private String image;
 

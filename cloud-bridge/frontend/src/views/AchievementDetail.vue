@@ -14,8 +14,8 @@
               <div class="banner-content">
                 <div class="tag-group">
                   <el-tag type="warning" effect="dark" class="maturity-tag">{{ achievement.maturity }}</el-tag>
-                  <el-tag type="info" effect="plain">{{ achievement.field }}</el-tag>
-                  <el-tag :type="statusType" effect="plain">{{ statusText }}</el-tag>
+                  <el-tag v-for="tag in tags" :key="tag" type="info" effect="light" class="tech-tag">{{ tag }}</el-tag>
+                  <el-tag :type="statusType" effect="plain" v-if="tags.length === 0">{{ statusText }}</el-tag>
                 </div>
                 <h1>{{ achievement.title }}</h1>
                 <div class="meta-info">
@@ -89,7 +89,7 @@
             </div>
 
             <!-- Resource Download -->
-            <div class="detail-section card-style">
+            <div class="detail-section card-style" v-if="resources.length > 0">
               <h3 class="section-title">资源下载</h3>
               <div class="resource-list">
                 <div class="resource-item" v-for="(res, index) in resources" :key="index">
@@ -275,10 +275,31 @@ const handleDownload = (resource: any) => {
     // window.open(resource.url, '_blank')
 }
 
-const resources = ref<any[]>([
-    { name: '技术白皮书.pdf', size: '2.5 MB', url: '#' },
-    { name: '性能测试报告.docx', size: '1.2 MB', url: '#' }
-])
+const resources = computed(() => {
+    if (!achievement.value || !achievement.value.resourceLinks) {
+        return []
+    }
+    try {
+        // Try parsing as JSON first
+        if (achievement.value.resourceLinks.trim().startsWith('[')) {
+            return JSON.parse(achievement.value.resourceLinks)
+        }
+        // Fallback for simple comma separated links (if any)
+        return achievement.value.resourceLinks.split(',').map((link: string, index: number) => ({
+            name: `资源文件 ${index + 1}`,
+            url: link.trim(),
+            size: '未知大小'
+        }))
+    } catch (e) {
+        console.error("Failed to parse resource links", e)
+        return []
+    }
+})
+
+const tags = computed(() => {
+    if (!achievement.value || !achievement.value.tags) return []
+    return achievement.value.tags.split(',').filter((t: string) => t && t.trim().length > 0)
+})
 
 const fetchDetail = async (id: string) => {
   loading.value = true

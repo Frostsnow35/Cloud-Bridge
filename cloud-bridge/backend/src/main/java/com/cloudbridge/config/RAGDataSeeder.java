@@ -12,8 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -102,6 +104,36 @@ public class RAGDataSeeder implements CommandLineRunner {
                 achievement.setPrice(new BigDecimal("0.00")); 
                 achievement.setOwnerId(1L); 
                 achievement.setStatus(Achievement.Status.PUBLISHED);
+                
+                // Generate Tags
+                Set<String> tagSet = new HashSet<>();
+                if (!direction.isEmpty()) tagSet.add(direction);
+                if (!level.isEmpty()) tagSet.add(level);
+                
+                // Simple Keyword Extraction from Title
+                String[] keywords = {
+                    "关键技术", "研发", "应用", "示范", "系统", "平台", "机器人", "智能", "大数据", "云平台", 
+                    "物联网", "区块链", "新材料", "生物", "医疗", "健康", "农业", "生态", "环保", "治理", 
+                    "监测", "检测", "装备", "制造", "工艺", "设计", "服务", "模式", "创新", "集成", 
+                    "协同", "优化", "提升", "评估", "预警", "防控", "治疗", "诊断", "药物", "疫苗", 
+                    "试剂", "基因", "细胞", "干细胞", "免疫", "神经", "脑科学", "心理", "认知", "教育"
+                };
+                
+                for (String kw : keywords) {
+                    if (title.contains(kw)) {
+                        tagSet.add(kw);
+                    }
+                }
+                
+                // Ensure at least 2 tags
+                if (tagSet.size() < 2) {
+                     tagSet.add("科技成果");
+                     if (tagSet.size() < 2) tagSet.add("前沿技术");
+                }
+
+                // Limit to 6 tags
+                String tags = tagSet.stream().limit(6).collect(Collectors.joining(","));
+                achievement.setTags(tags);
                 
                 achievementRepository.save(achievement);
                 count++;
