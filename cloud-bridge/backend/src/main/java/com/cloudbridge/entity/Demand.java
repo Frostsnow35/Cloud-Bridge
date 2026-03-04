@@ -65,7 +65,8 @@ public class Demand {
 
     public enum Type {
         NORMAL,
-        REWARD // 揭榜挂帅
+        REWARD, // 揭榜挂帅
+        TECHNOLOGY_ATTACK // 技术攻关
     }
 
     public enum Status {
