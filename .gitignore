@@ -30,6 +30,7 @@
 # Database Data
 cloud-bridge/backend/data/postgres/
 cloud-bridge/backend/data/neo4j/
+cloud-bridge/backend/data/elasticsearch/
 **/*.db
 **/*.sqlite
 **/*.lock.db

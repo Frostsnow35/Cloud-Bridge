@@ -1,0 +1,59 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            # 0. Ensure Environment (Git & Docker)
+            if ! command -v git &> /dev/null; then
+              echo "Installing Git..."
+              if [ -f /etc/redhat-release ]; then
+                yum install -y git
+              else
+                apt-get update && apt-get install -y git
+              fi
+            fi
+
+            if ! command -v docker &> /dev/null; then
+              echo "Installing Docker..."
+              curl -fsSL https://get.docker.com | sh
+              systemctl enable --now docker
+            fi
+
+            # 1. Prepare directory
+            mkdir -p /opt/cloud-bridge
+            cd /opt/cloud-bridge
+
+            # 2. Update code
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/Frostsnow35/Cloud-Bridge.git .
+            else
+              git pull origin main
+            fi
+
+            # 3. Configure Env
+            echo "COMPOSE_PROJECT_NAME=cloud-bridge-prod" > .env
+            echo "AI_API_KEY=${{ secrets.AI_API_KEY }}" >> .env
+            # Add AI config if needed, default to hardcoded or use secrets
+            echo "AI_API_URL=http://36.140.97.212:9004/v1/chat/completions" >> .env
+            echo "AI_API_MODEL=Qwen2.5-72B" >> .env
+            
+            # 4. Build and Start
+            docker compose down --remove-orphans
+            docker compose up -d --build
+
+            # 5. Cleanup
+            docker image prune -f
