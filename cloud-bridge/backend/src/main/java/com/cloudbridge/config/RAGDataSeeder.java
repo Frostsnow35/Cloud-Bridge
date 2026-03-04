@@ -25,23 +25,19 @@ public class RAGDataSeeder implements CommandLineRunner {
 
     @Autowired
     private AchievementRepository achievementRepository;
+    
+    @Autowired
+    private com.cloudbridge.repository.DemandRepository demandRepository;
 
     @Override
     public void run(String... args) throws Exception {
         System.err.println("=== RAGDataSeeder STARTED ===");
         try {
             // New CSV seeders (Prioritized)
-            // Note: seedAchievementsFromCSV is now REPLACED by seedAchievementsFromExpertCSV as requested
-            seedAchievementsFromExpertCSV();
+            seedAchievementsFromProjectCSV();
             seedPublicPlatformsFromCSV();
+            seedTestDemands();
             
-            // Legacy seeders
-            seedPolicies();
-            seedFunds();
-            seedEquipments();
-            seedExperts();
-            seedPatents();
-            seedEnterprises();
         } catch (Throwable e) {
             System.err.println("RAG Data Seeding Failed (Non-critical): " + e.getMessage());
             e.printStackTrace();
@@ -49,15 +45,15 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("=== RAGDataSeeder FINISHED ===");
     }
 
-    // Renamed and updated to use the expert CSV as the SOLE source of Achievements
-    private void seedAchievementsFromExpertCSV() {
-        System.err.println("Attempting to seed Achievements from Expert CSV...");
+    // Updated to use the project list CSV as the SOLE source of Achievements
+    private void seedAchievementsFromProjectCSV() {
+        System.err.println("Attempting to seed Achievements from Project List CSV...");
         
         // Path Resolution Strategy
         Path path = null;
-        Path dockerPath = Paths.get("/app/datasets/广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
-        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
-        Path relativePath = Paths.get("数据集/广州市白云区科技创新发展专项资金项目评审专家名单.csv.csv");
+        Path dockerPath = Paths.get("/app/datasets/广州市白云区省、市级科技项目立项名单.csv");
+        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区省、市级科技项目立项名单.csv");
+        Path relativePath = Paths.get("数据集/广州市白云区省、市级科技项目立项名单.csv");
 
         if (Files.exists(dockerPath)) {
             path = dockerPath;
@@ -76,48 +72,55 @@ public class RAGDataSeeder implements CommandLineRunner {
             achievementRepository.deleteAll();
             
             if (path == null) {
-                System.err.println("CRITICAL: Achievement CSV NOT FOUND in any expected location.");
+                System.err.println("CRITICAL: Project List CSV NOT FOUND in any expected location.");
                 System.err.println("Checked: " + dockerPath + ", " + localPath + ", " + relativePath);
                 return;
             }
 
-            // Try GBK encoding first
+            // Try GBK encoding first (Excel CSV default)
             List<String> lines = null;
             try {
                 lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
             } catch (Exception e) {
-                System.err.println("GBK read failed for Expert CSV, trying UTF-8...");
+                System.err.println("GBK read failed for Project CSV, trying UTF-8...");
                 lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
             }
             
             if (lines == null || lines.isEmpty()) {
-                System.err.println("Achievement CSV is empty.");
+                System.err.println("Project CSV is empty.");
                 return;
             }
 
-            // Header: 创建时间,领域,更新时间
-            // We will map "领域" to Achievement Title/Field
+            // Header: 承担单位,级别,序号,项目名称,项目批次,支持方向
             List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
             int count = 0;
             
             for (String line : dataLines) {
                 String[] parts = line.split(",");
-                // Expected at least 2 parts (Time, Field)
-                if (parts.length < 2) continue;
+                // Expected at least 6 parts
+                if (parts.length < 4) continue; // Relaxed check
                 
-                String createTime = getPart(parts, 0);
-                String field = getPart(parts, 1);
-                String updateTime = getPart(parts, 2);
+                String unit = getPart(parts, 0); // 承担单位 -> Institution/Owner
+                String level = getPart(parts, 1); // 级别 -> Tag
+                // index 2 is serial number
+                String title = getPart(parts, 3); // 项目名称 -> Title
+                String batch = getPart(parts, 4); // 项目批次
+                String direction = getPart(parts, 5); // 支持方向 -> Field
                 
-                if (field.isEmpty()) continue;
+                if (title.isEmpty()) continue;
 
                 Achievement achievement = new Achievement();
-                // Synthesize a title since the CSV only has Field
-                achievement.setTitle(field + "相关研究成果");
-                achievement.setDescription("本成果由" + field + "领域的资深专家团队研发，具有较高的技术创新性和应用价值。");
-                achievement.setField(field);
-                achievement.setMaturity("成熟应用"); // Default
-                achievement.setPrice(new BigDecimal("0.00")); // Default "Negotiable"
+                achievement.setTitle(title);
+                // Combine batch and direction for description
+                String desc = "项目批次: " + batch + ". 支持方向: " + direction + ". 级别: " + level;
+                achievement.setDescription(desc);
+                
+                // Use direction as Field if available, else generic
+                achievement.setField(direction.isEmpty() ? "科技项目" : direction);
+                
+                achievement.setInstitution(unit);
+                achievement.setMaturity("研发中"); // Default for "Projects"
+                achievement.setPrice(new BigDecimal("0.00")); // Negotiable
                 achievement.setOwnerId(1L); // Default admin owner
                 achievement.setStatus(Achievement.Status.PUBLISHED);
                 
@@ -125,10 +128,10 @@ public class RAGDataSeeder implements CommandLineRunner {
                 achievementRepository.save(achievement);
                 count++;
             }
-            System.err.println("SUCCESS: Seeded " + count + " Achievements from Expert CSV.");
+            System.err.println("SUCCESS: Seeded " + count + " Achievements from Project List CSV.");
             
         } catch (Exception e) {
-            System.err.println("Failed to seed Achievements from Expert CSV: " + e.getMessage());
+            System.err.println("Failed to seed Achievements from Project CSV: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -226,165 +229,49 @@ public class RAGDataSeeder implements CommandLineRunner {
         }
     }
 
+    private void seedTestDemands() {
+        System.err.println("Attempting to seed Derived Test Demands...");
+        
+        // 1. Clear existing demands
+        demandRepository.deleteAll();
+        
+        // 2. Fetch some achievements to base demands on
+        List<Achievement> achievements = achievementRepository.findAll();
+        if (achievements.isEmpty()) {
+            System.err.println("No achievements found. Skipping demand seeding.");
+            return;
+        }
+        
+        int count = 0;
+        // Pick up to 5 random achievements (or first 5)
+        for (int i = 0; i < Math.min(5, achievements.size()); i++) {
+            Achievement ach = achievements.get(i);
+            
+            // Create a matching demand
+            com.cloudbridge.entity.Demand demand = new com.cloudbridge.entity.Demand();
+            demand.setTitle("寻求" + ach.getTitle() + "相关技术合作");
+            demand.setDescription("我司正在寻找" + ach.getField() + "领域的解决方案，特别是关于" + ach.getTitle() + "的技术。希望与高校或科研机构合作。");
+            demand.setField(ach.getField());
+            demand.setBudget(new BigDecimal("500000")); // 500k budget
+            demand.setDeadline(java.time.LocalDate.now().plusMonths(3));
+            demand.setContactName("测试经理");
+            demand.setPhone("13800138000");
+            demand.setInstitution("某知名科技企业");
+            demand.setType("技术攻关");
+            demand.setOwnerId(1L);
+            demand.setStatus(com.cloudbridge.entity.Demand.Status.PUBLISHED);
+            
+            demandRepository.save(demand);
+            count++;
+        }
+        
+        System.err.println("SUCCESS: Seeded " + count + " Test Demands derived from Achievements.");
+    }
+
     private String getPart(String[] parts, int index) {
         if (index < parts.length) {
             return parts[index].trim();
         }
         return "";
-    }
-
-    private void seedPolicies() {
-        searchService.createIndex("policies");
-        loadMockData("policies");
-        
-        // Default seed if file empty or not found (for basic testing)
-        if (!hasData("policies")) {
-            Map<String, Object> policy1 = new HashMap<>();
-            policy1.put("id", "P001");
-            policy1.put("title", "关于支持新材料产业发展的若干措施");
-            policy1.put("department", "工信部");
-            policy1.put("content", "为加快新材料产业发展，对首批次应用保险给予保费补贴，最高不超过500万元。支持高性能碳纤维、超导材料等关键技术突破。");
-            policy1.put("policyType", "Subsidy");
-            policy1.put("industry", new String[]{"New Materials"});
-            
-            searchService.indexDocument("policies", "P001", policy1);
-    
-            Map<String, Object> policy2 = new HashMap<>();
-            policy2.put("id", "P002");
-            policy2.put("title", "生物医药产业创新发展行动计划");
-            policy2.put("department", "广东省科技厅");
-            policy2.put("content", "支持创新药研发，对进入临床试验阶段的项目给予最高1000万元资助。鼓励企业建设高水平研发中心。");
-            policy2.put("policyType", "Grant");
-            policy2.put("industry", new String[]{"Bio-medicine"});
-    
-            searchService.indexDocument("policies", "P002", policy2);
-        }
-    }
-
-    private void seedFunds() {
-        searchService.createIndex("funds");
-        loadMockData("funds");
-
-        if (!hasData("funds")) {
-            Map<String, Object> fund1 = new HashMap<>();
-            fund1.put("id", "F001");
-            fund1.put("name", "科创贷");
-            fund1.put("provider", "建设银行");
-            fund1.put("fundType", "Loan");
-            fund1.put("amountRange", "100-500万");
-            fund1.put("industryFocus", new String[]{"Tech", "New Materials"});
-            fund1.put("interestRate", "3.5%");
-    
-            searchService.indexDocument("funds", "F001", fund1);
-        }
-    }
-
-    private void seedEquipments() {
-        searchService.createIndex("equipments");
-        loadMockData("equipments");
-
-        if (!hasData("equipments")) {
-            Map<String, Object> equip1 = new HashMap<>();
-            equip1.put("id", "E001");
-            equip1.put("name", "冷冻电镜 (Cryo-EM)");
-            equip1.put("facilityName", "江门双碳实验室");
-            equip1.put("owner", "香港科技大学(广州)");
-            equip1.put("category", "Analysis");
-            equip1.put("specs", "300kV, K3相机");
-            equip1.put("availability", "Available");
-    
-            searchService.indexDocument("equipments", "E001", equip1);
-        }
-    }
-    
-    private void seedExperts() {
-        searchService.createIndex("experts");
-        loadMockData("experts");
-        
-        if (!hasData("experts")) {
-             Map<String, Object> expert1 = new HashMap<>();
-             expert1.put("id", "EXP001");
-             expert1.put("name", "张教授");
-             expert1.put("title", "首席科学家");
-             expert1.put("affiliation", "清华大学");
-             expert1.put("field", new String[]{"人工智能", "深度学习"});
-             expert1.put("achievements", "发表顶级会议论文50余篇，引用过万。");
-             
-             searchService.indexDocument("experts", "EXP001", expert1);
-        }
-    }
-
-    private void seedPatents() {
-        searchService.createIndex("patents");
-        loadMockData("patents");
-        
-        if (!hasData("patents")) {
-             Map<String, Object> patent1 = new HashMap<>();
-             patent1.put("id", "PAT001");
-             patent1.put("title", "一种基于深度学习的图像识别方法");
-             patent1.put("patentNumber", "CN108XXXXXXA");
-             patent1.put("assignee", "云桥科技");
-             patent1.put("inventor", "李工");
-             patent1.put("publicationDate", "2023-05-20");
-             patent1.put("abstractText", "本发明公开了一种基于卷积神经网络的实时图像识别系统，具有极高的准确率和低延迟...");
-             patent1.put("status", "Authorized");
-             
-             searchService.indexDocument("patents", "PAT001", patent1);
-        }
-    }
-
-    private void seedEnterprises() {
-        searchService.createIndex("enterprises");
-        loadMockData("enterprises");
-        
-        if (!hasData("enterprises")) {
-             Map<String, Object> ent1 = new HashMap<>();
-             ent1.put("id", "ENT001");
-             ent1.put("name", "北京创新微电子有限公司");
-             ent1.put("industry", "Semiconductor");
-             ent1.put("scale", "100-500人");
-             ent1.put("location", "中关村科学城");
-             ent1.put("description", "专注于高性能模拟集成电路设计，国家高新技术企业。");
-             
-             searchService.indexDocument("enterprises", "ENT001", ent1);
-        }
-    }
-
-    private java.nio.file.Path getDataPath(String category) {
-        java.nio.file.Path p1 = java.nio.file.Paths.get("data", category + ".jsonl");
-        if (java.nio.file.Files.exists(p1)) return p1;
-        
-        java.nio.file.Path p2 = java.nio.file.Paths.get("backend", "data", category + ".jsonl");
-        if (java.nio.file.Files.exists(p2)) return p2;
-        
-        return p1; // Default to first path for error message
-    }
-
-    private void loadMockData(String category) {
-        try {
-            java.nio.file.Path path = getDataPath(category);
-            
-            if (java.nio.file.Files.exists(path)) {
-                System.out.println("Loading mock data for " + category + " from " + path.toAbsolutePath());
-                java.nio.file.Files.lines(path).forEach(line -> {
-                    try {
-                        Map<String, Object> doc = new com.fasterxml.jackson.databind.ObjectMapper().readValue(line, Map.class);
-                        String id = (String) doc.get("id");
-                        if (id == null) id = java.util.UUID.randomUUID().toString();
-                        searchService.indexDocument(category, id, doc);
-                    } catch (Exception e) {
-                        System.err.println("Error parsing line for " + category + ": " + e.getMessage());
-                    }
-                });
-            } else {
-                System.out.println("No mock data file found for " + category + " at " + path.toAbsolutePath());
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to load mock data for " + category + ": " + e.getMessage());
-        }
-    }
-    
-    private boolean hasData(String category) {
-         return java.nio.file.Files.exists(getDataPath(category));
     }
 }
