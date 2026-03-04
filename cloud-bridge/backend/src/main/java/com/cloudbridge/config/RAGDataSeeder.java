@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import com.cloudbridge.util.DomainHierarchyUtil;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -116,12 +117,27 @@ public class RAGDataSeeder implements CommandLineRunner {
                     "物联网", "区块链", "新材料", "生物", "医疗", "健康", "农业", "生态", "环保", "治理", 
                     "监测", "检测", "装备", "制造", "工艺", "设计", "服务", "模式", "创新", "集成", 
                     "协同", "优化", "提升", "评估", "预警", "防控", "治疗", "诊断", "药物", "疫苗", 
-                    "试剂", "基因", "细胞", "干细胞", "免疫", "神经", "脑科学", "心理", "认知", "教育"
+                    "试剂", "基因", "细胞", "干细胞", "免疫", "神经", "脑科学", "心理", "认知", "教育",
+                    "石墨烯", "纳米", "高分子", "复合材料", "金属", "陶瓷", "纤维", "涂层"
                 };
                 
                 for (String kw : keywords) {
                     if (title.contains(kw)) {
                         tagSet.add(kw);
+                        
+                        // HIERARCHY EXPANSION: If keyword is a child, add parent!
+                        for (Map.Entry<String, List<String>> entry : DomainHierarchyUtil.DOMAIN_HIERARCHY.entrySet()) {
+                            if (entry.getValue().contains(kw)) {
+                                tagSet.add(entry.getKey()); // Add parent domain (e.g. "新材料")
+                                
+                                // Optional: Add "High Performance" etc if "Graphene"
+                                // Hardcoded rules for demonstration
+                                if (kw.equals("石墨烯")) {
+                                    tagSet.add("高性能材料");
+                                    tagSet.add("碳材料");
+                                }
+                            }
+                        }
                     }
                 }
                 
