@@ -257,7 +257,7 @@ public class RAGDataSeeder implements CommandLineRunner {
             demand.setContactName("测试经理");
             demand.setPhone("13800138000");
             demand.setInstitution("某知名科技企业");
-            demand.setType("技术攻关");
+            demand.setType(com.cloudbridge.entity.Demand.Type.TECHNOLOGY_ATTACK);
             demand.setOwnerId(1L);
             demand.setStatus(com.cloudbridge.entity.Demand.Status.PUBLISHED);
             

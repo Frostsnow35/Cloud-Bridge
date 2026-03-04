@@ -1,5 +1,5 @@
-- [ ] Database contains NO mock policies, funds, or experts (tables should be empty or non-existent if not seeded).
-- [ ] `Achievement` table contains data from `广州市白云区省、市级科技项目立项名单.csv` (e.g., "一种高效集水高分子...").
-- [ ] `Demand` table contains generated test demands based on the real achievements.
-- [ ] `PublicPlatform` table contains data from `广州市白云区公共数据开放计划.csv`.
-- [ ] Matching Dashboard shows results from the loaded CSVs, not "Virtual Digital Human".
+- [x] Database contains NO mock policies, funds, or experts (tables should be empty or non-existent if not seeded).
+- [x] `Achievement` table contains data from `广州市白云区省、市级科技项目立项名单.csv` (e.g., "一种高效集水高分子...").
+- [x] `Demand` table contains generated test demands based on the real achievements.
+- [x] `PublicPlatform` table contains data from `广州市白云区公共数据开放计划.csv`.
+- [x] Matching Dashboard shows results from the loaded CSVs, not "Virtual Digital Human".
