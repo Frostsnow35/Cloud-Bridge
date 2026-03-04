@@ -32,6 +32,16 @@ public class MatchingService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // Define Hierarchy
+    private static final Map<String, List<String>> DOMAIN_HIERARCHY = new HashMap<>();
+    static {
+        DOMAIN_HIERARCHY.put("生物医药", Arrays.asList("细胞", "基因", "药物", "疫苗", "抗体", "蛋白", "免疫", "试剂", "诊断", "治疗"));
+        DOMAIN_HIERARCHY.put("新材料", Arrays.asList("石墨烯", "纳米", "高分子", "复合材料", "金属", "陶瓷", "纤维", "涂层"));
+        DOMAIN_HIERARCHY.put("人工智能", Arrays.asList("深度学习", "机器学习", "神经网络", "图像识别", "自然语言处理", "机器人", "智能", "算法"));
+        DOMAIN_HIERARCHY.put("电子信息", Arrays.asList("大数据", "云计算", "物联网", "区块链", "5G", "通信", "芯片", "半导体"));
+        DOMAIN_HIERARCHY.put("智能制造", Arrays.asList("自动化", "数控", "3D打印", "传感器", "工业互联网", "机床"));
+    }
+
     // Scoring constants
     private static final int SCORE_FIELD_MATCH = 100;
     private static final int SCORE_KEYWORD_MATCH = 50;
@@ -144,14 +154,34 @@ public class MatchingService {
             }
         }
         
-        // 3.2 Main Keyword Match
+        // 3.2 Main Keyword Match & HIERARCHY EXPANSION
         if (keyword != null && !keyword.isEmpty()) {
+            // A. Search by keyword itself
             List<Achievement> keywordMatches = achievementRepository.findPublishedByKeyword(keyword);
             for (Achievement a : keywordMatches) {
-                // STRICT FIELD CHECK: If we have an effective field, discard mismatches immediately unless score is very high (exact title match)
                 if (isFieldMismatch(a, effectiveField)) continue;
-                
                 scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+            }
+            
+            // B. Search by hierarchy children (Expansion)
+            for (Map.Entry<String, List<String>> entry : DOMAIN_HIERARCHY.entrySet()) {
+                String domain = entry.getKey();
+                // If keyword matches a domain name (e.g. "生物医药")
+                if (keyword.contains(domain) || domain.contains(keyword)) {
+                    List<String> children = entry.getValue();
+                    for (String child : children) {
+                        List<Achievement> childMatches = achievementRepository.findPublishedByKeyword(child);
+                        for (Achievement a : childMatches) {
+                             if (isFieldMismatch(a, effectiveField)) continue;
+                             // Score child matches slightly less but still significant
+                             scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore((int)(SCORE_KEYWORD_MATCH * 0.8));
+                        }
+                        // Also add to related keywords for frontend
+                        if (!relatedKeywords.contains(child)) {
+                            relatedKeywords.add(child);
+                        }
+                    }
+                }
             }
         }
 
@@ -329,6 +359,106 @@ public class MatchingService {
         // Strategy: Only connect Achievements to "Leaf" nodes (SubCategories or Specific Technologies)
         // Avoid connecting to "Root" or high-level categories if possible.
         
+        // --- NEW HIERARCHY LOGIC START ---
+        // If the graph contains a broad category node (e.g., "生物医药"), check if we have achievements 
+        // that match its children (e.g., "细胞") but "细胞" isn't in the graph yet.
+        // If so, inject "细胞" node and connect it.
+        
+        List<JsonNode> nodesToAdd = new ArrayList<>();
+        List<ObjectNode> relsToAdd = new ArrayList<>();
+        
+        for (JsonNode node : nodes) {
+            String label = node.has("label") ? node.get("label").asText() : "";
+            String nodeId = node.has("id") ? node.get("id").asText() : "";
+            
+            // Check if this node is a known parent domain
+            for (Map.Entry<String, List<String>> entry : DOMAIN_HIERARCHY.entrySet()) {
+                String domain = entry.getKey();
+                if (label.contains(domain) || domain.contains(label)) {
+                    List<String> children = entry.getValue();
+                    for (String child : children) {
+                        // Check if we have achievements for this child
+                        List<Achievement> childMatches = achievementRepository.findPublishedByKeyword(child);
+                        if (childMatches.isEmpty()) continue;
+                        
+                        // Check if child node already exists in graph (simple check by label)
+                        boolean childExists = false;
+                        String childNodeId = null;
+                        for (JsonNode n : nodes) {
+                            if (n.has("label") && n.get("label").asText().contains(child)) {
+                                childExists = true;
+                                childNodeId = n.get("id").asText();
+                                break;
+                            }
+                        }
+                        
+                        // If child node doesn't exist, create it
+                        if (!childExists) {
+                            childNodeId = "node_" + UUID.randomUUID().toString().substring(0, 8);
+                            ObjectNode childNode = objectMapper.createObjectNode();
+                            childNode.put("id", childNodeId);
+                            childNode.put("label", child);
+                            childNode.put("type", "SubCategory"); // Mark as subcategory
+                            nodesToAdd.add(childNode);
+                            
+                            // Connect Parent -> Child
+                            ObjectNode rel = objectMapper.createObjectNode();
+                            rel.put("source", nodeId);
+                            rel.put("target", childNodeId);
+                            rel.put("type", "INCLUDES");
+                            relsToAdd.add(rel);
+                            
+                            existingIds.add(childNodeId); // Track ID
+                        }
+                        
+                        // Now connect matching achievements to this CHILD node (whether new or existing)
+                        // We will let the main loop below handle connections if the node exists, 
+                        // BUT since we just added it or it might be skipped by main loop logic, let's force connect here for new nodes.
+                        // Actually, better to just add the node to 'nodes' list and let the main loop process it?
+                        // No, main loop iterates over original 'nodes'. We need to process these new nodes too.
+                        
+                        // Let's connect achievements to this child node directly here
+                        int count = 0;
+                        for (Achievement a : childMatches) {
+                             if (filterField != null && !filterField.isEmpty()) {
+                                boolean match = (a.getField() != null && a.getField().contains(filterField)) || (a.getField() != null && filterField.contains(a.getField()));
+                                if (!match) continue;
+                             }
+                             if (count >= 3) break;
+                             
+                             String achId = "ach_" + a.getId();
+                             if (!existingIds.contains(achId)) {
+                                 ObjectNode achNode = objectMapper.createObjectNode();
+                                 achNode.put("id", achId);
+                                 String displayTitle = a.getTitle().length() > 6 ? a.getTitle().substring(0, 6) + "..." : a.getTitle();
+                                 achNode.put("label", displayTitle);
+                                 achNode.put("fullTitle", a.getTitle());
+                                 achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
+                                 achNode.put("type", "Achievement");
+                                 achNode.put("isLeaf", true);
+                                 
+                                 nodesToAdd.add(achNode);
+                                 existingIds.add(achId);
+                                 
+                                 ObjectNode rel = objectMapper.createObjectNode();
+                                 rel.put("source", childNodeId);
+                                 rel.put("target", achId);
+                                 rel.put("type", "MATCHES");
+                                 relsToAdd.add(rel);
+                                 
+                                 count++;
+                             }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Add all new nodes and rels
+        nodes.addAll(nodesToAdd);
+        relationships.addAll(relsToAdd);
+        // --- NEW HIERARCHY LOGIC END ---
+
         for (JsonNode node : nodes) {
             String label = node.has("label") ? node.get("label").asText() : "";
             String type = node.has("type") ? node.get("type").asText() : "";

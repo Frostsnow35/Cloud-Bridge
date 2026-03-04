@@ -1,0 +1,4 @@
+- [ ] Search "生物医药" returns achievements tagged "细胞", "基因" etc.
+- [ ] Graph shows "生物医药" -> "细胞" -> Achievement connection when relevant achievements exist.
+- [ ] Search expansion works for other domains (e.g., "New Materials").
+- [ ] Ensure "Leaf Node" logic (achievements connect to specific nodes) is maintained.
