@@ -321,58 +321,74 @@ public class MatchingService {
         }
 
         Set<String> existingIds = new HashSet<>();
+        // Pre-populate existing IDs to avoid duplicates
         for (JsonNode n : nodes) {
             if (n.has("id")) existingIds.add(n.get("id").asText());
         }
 
+        // Strategy: Only connect Achievements to "Leaf" nodes (SubCategories or Specific Technologies)
+        // Avoid connecting to "Root" or high-level categories if possible.
+        
         for (JsonNode node : nodes) {
             String label = node.has("label") ? node.get("label").asText() : "";
             String type = node.has("type") ? node.get("type").asText() : "";
             String nodeId = node.has("id") ? node.get("id").asText() : "";
-
-            if (label.length() > 1 && (type.equalsIgnoreCase("Technology") || type.equalsIgnoreCase("SubCategory") || type.equalsIgnoreCase("Category") || type.equalsIgnoreCase("InferredTech"))) {
+            
+            // HIERARCHICAL LOGIC: 
+            // Only attach achievements to specific/leaf nodes (e.g., "Technology", "InferredTech", "SubCategory").
+            // Skip broad "Category" nodes unless no specific nodes exist.
+            boolean isLeafNode = type.equalsIgnoreCase("Technology") || type.equalsIgnoreCase("InferredTech") || type.equalsIgnoreCase("SubCategory");
+            
+            if (label.length() > 1 && isLeafNode) {
+                // Find achievements matching this specific node label
                 List<Achievement> matches = achievementRepository.findPublishedByKeyword(label);
                 
                 int count = 0;
                 for (Achievement a : matches) {
                     // Check Filter
                     if (filterField != null && !filterField.isEmpty()) {
-                        if (a.getField() == null || !a.getField().contains(filterField)) continue;
+                        // Loose check: field contains filter OR filter contains field
+                        boolean match = (a.getField() != null && a.getField().contains(filterField)) || (a.getField() != null && filterField.contains(a.getField()));
+                        if (!match) continue;
                     }
 
-                    if (count >= 3) break;
+                    if (count >= 3) break; // Max 3 achievements per node to reduce clutter
                     
                     String achId = "ach_" + a.getId();
                     
-                    // STRICT FILTER: Only connect if score is high enough (strict semantic match)
-                    // Use scoredMatches map to check score. If score < 20, do NOT connect in graph.
-                    ScoredAchievement scored = scoredMatches.get(a.getId());
-                    boolean isStrongMatch = scored != null && scored.getScore() >= 40; // Threshold for graph connection
+                    // Add score to the main matching logic
+                    ScoredAchievement scored = scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0));
+                    scored.addScore(SCORE_GRAPH_MATCH);
+
+                    // GRAPH VISUALIZATION THRESHOLD: 
+                    // Only visualize if it's a decent match to keep graph clean
+                    boolean isStrongMatch = scored.getScore() >= 30; 
                     
                     if (isStrongMatch) {
                         if (!existingIds.contains(achId)) {
                             ObjectNode achNode = objectMapper.createObjectNode();
                             achNode.put("id", achId);
-                            achNode.put("label", a.getTitle().length() > 8 ? a.getTitle().substring(0, 8) + "..." : a.getTitle());
+                            // Truncate title for visual clarity
+                            String displayTitle = a.getTitle().length() > 6 ? a.getTitle().substring(0, 6) + "..." : a.getTitle();
+                            achNode.put("label", displayTitle);
                             achNode.put("fullTitle", a.getTitle());
                             achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
                             achNode.put("type", "Achievement");
+                            // Add specific styling property for frontend if needed
+                            achNode.put("isLeaf", true); 
                             
-                            ((ArrayNode)nodes).add(achNode);
+                            nodes.add(achNode);
                             existingIds.add(achId);
+                            
+                            // Create edge: Node -> Achievement
+                            ObjectNode rel = objectMapper.createObjectNode();
+                            rel.put("source", nodeId);
+                            rel.put("target", achId);
+                            rel.put("type", "MATCHES");
+                            relationships.add(rel);
                         }
-
-                        ObjectNode rel = objectMapper.createObjectNode();
-                        rel.put("source", nodeId);
-                        rel.put("target", achId);
-                        rel.put("type", "MATCHES");
-                        ((ArrayNode)relationships).add(rel);
                         
                         count++;
-                    } else {
-                         // Even if not in graph, it contributes score if matched via graph logic (keyword)
-                         // But we want to avoid graph clutter. So we only add score, not node.
-                        addScore(scoredMatches, a, SCORE_GRAPH_MATCH, filterField);
                     }
                 }
             }

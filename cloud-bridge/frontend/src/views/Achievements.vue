@@ -303,7 +303,7 @@ const truncateText = (text: string, length: number) => {
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 64px;
+  gap: 32px;
   padding: 20px;
 }
 
@@ -414,5 +414,30 @@ const truncateText = (text: string, length: number) => {
   margin-top: 40px;
   display: flex;
   justify-content: center;
+  padding-bottom: 40px;
+}
+
+.pagination-container :deep(.el-pagination.is-background .el-pager li:not(.is-disabled)) {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.pagination-container :deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
+  background-color: var(--gold-primary);
+  color: #000;
+  border-color: var(--gold-primary);
+}
+
+.pagination-container :deep(.el-pagination.is-background .btn-prev),
+.pagination-container :deep(.el-pagination.is-background .btn-next) {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.pagination-container :deep(.el-pagination__total),
+.pagination-container :deep(.el-pagination__jump) {
+  color: var(--text-secondary);
 }
 </style>
