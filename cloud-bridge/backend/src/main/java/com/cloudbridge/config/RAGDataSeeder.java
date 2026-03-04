@@ -49,22 +49,7 @@ public class RAGDataSeeder implements CommandLineRunner {
     private void seedAchievementsFromProjectCSV() {
         System.err.println("Attempting to seed Achievements from Project List CSV...");
         
-        // Path Resolution Strategy
-        Path path = null;
-        Path dockerPath = Paths.get("/app/datasets/广州市白云区省、市级科技项目立项名单.csv");
-        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区省、市级科技项目立项名单.csv");
-        Path relativePath = Paths.get("数据集/广州市白云区省、市级科技项目立项名单.csv");
-
-        if (Files.exists(dockerPath)) {
-            path = dockerPath;
-            System.err.println("Found CSV in Docker path: " + path.toAbsolutePath());
-        } else if (Files.exists(localPath)) {
-            path = localPath;
-            System.err.println("Found CSV in Local path: " + path.toAbsolutePath());
-        } else if (Files.exists(relativePath)) {
-            path = relativePath;
-            System.err.println("Found CSV in Relative path: " + path.toAbsolutePath());
-        }
+        Path path = findCsvFile("科技项目", "立项名单");
 
         try {
             // ALWAYS Clear existing achievements to ensure clean state
@@ -73,7 +58,6 @@ public class RAGDataSeeder implements CommandLineRunner {
             
             if (path == null) {
                 System.err.println("CRITICAL: Project List CSV NOT FOUND in any expected location.");
-                System.err.println("Checked: " + dockerPath + ", " + localPath + ", " + relativePath);
                 return;
             }
 
@@ -96,35 +80,29 @@ public class RAGDataSeeder implements CommandLineRunner {
             int count = 0;
             
             for (String line : dataLines) {
-                String[] parts = line.split(",");
-                // Expected at least 6 parts
-                if (parts.length < 4) continue; // Relaxed check
+                // Use a smarter split to handle potential commas within quotes (though not common in simple CSVs)
+                String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+                if (parts.length < 4) continue; 
                 
-                String unit = getPart(parts, 0); // 承担单位 -> Institution/Owner
-                String level = getPart(parts, 1); // 级别 -> Tag
-                // index 2 is serial number
-                String title = getPart(parts, 3); // 项目名称 -> Title
-                String batch = getPart(parts, 4); // 项目批次
-                String direction = getPart(parts, 5); // 支持方向 -> Field
+                String unit = getPart(parts, 0).replace("\"", ""); 
+                String level = getPart(parts, 1).replace("\"", ""); 
+                String title = getPart(parts, 3).replace("\"", ""); 
+                String batch = getPart(parts, 4).replace("\"", ""); 
+                String direction = getPart(parts, 5).replace("\"", ""); 
                 
                 if (title.isEmpty()) continue;
 
                 Achievement achievement = new Achievement();
                 achievement.setTitle(title);
-                // Combine batch and direction for description
-                String desc = "项目批次: " + batch + ". 支持方向: " + direction + ". 级别: " + level;
+                String desc = "立项批次: " + batch + " | 支持方向: " + direction + " | 级别: " + level;
                 achievement.setDescription(desc);
-                
-                // Use direction as Field if available, else generic
-                achievement.setField(direction.isEmpty() ? "科技项目" : direction);
-                
+                achievement.setField(direction.isEmpty() ? "科技立项" : direction);
                 achievement.setInstitution(unit);
-                achievement.setMaturity("研发中"); // Default for "Projects"
-                achievement.setPrice(new BigDecimal("0.00")); // Negotiable
-                achievement.setOwnerId(1L); // Default admin owner
+                achievement.setMaturity("成熟应用"); 
+                achievement.setPrice(new BigDecimal("0.00")); 
+                achievement.setOwnerId(1L); 
                 achievement.setStatus(Achievement.Status.PUBLISHED);
                 
-                // Save to DB
                 achievementRepository.save(achievement);
                 count++;
             }
@@ -139,22 +117,7 @@ public class RAGDataSeeder implements CommandLineRunner {
     private void seedPublicPlatformsFromCSV() {
         System.err.println("Attempting to seed Public Platforms...");
         
-        // Path Resolution Strategy
-        Path path = null;
-        Path dockerPath = Paths.get("/app/datasets/广州市白云区公共数据开放计划.csv");
-        Path localPath = Paths.get("e:\\数据要素大赛作品\\数据集\\广州市白云区公共数据开放计划.csv");
-        Path relativePath = Paths.get("数据集/广州市白云区公共数据开放计划.csv");
-
-        if (Files.exists(dockerPath)) {
-            path = dockerPath;
-            System.err.println("Found CSV in Docker path: " + path.toAbsolutePath());
-        } else if (Files.exists(localPath)) {
-            path = localPath;
-            System.err.println("Found CSV in Local path: " + path.toAbsolutePath());
-        } else if (Files.exists(relativePath)) {
-            path = relativePath;
-            System.err.println("Found CSV in Relative path: " + path.toAbsolutePath());
-        }
+        Path path = findCsvFile("公共数据", "开放计划");
         
         if (path == null) {
             System.err.println("CRITICAL: Public Platforms CSV NOT FOUND in any expected location.");
@@ -170,15 +133,9 @@ public class RAGDataSeeder implements CommandLineRunner {
             List<String> lines = null;
             try {
                 lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
-                System.err.println("Read " + lines.size() + " lines with GBK encoding.");
             } catch (Exception e) {
-                System.err.println("GBK read failed: " + e.getMessage());
-                try {
-                    lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
-                    System.err.println("Read " + lines.size() + " lines with UTF-8 encoding.");
-                } catch (Exception ex) {
-                    System.err.println("UTF-8 read failed: " + ex.getMessage());
-                }
+                System.err.println("GBK read failed for Public Platform CSV, trying UTF-8...");
+                lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
             }
             
             if (lines == null || lines.isEmpty()) {
@@ -273,5 +230,45 @@ public class RAGDataSeeder implements CommandLineRunner {
             return parts[index].trim();
         }
         return "";
+    }
+
+    private Path findCsvFile(String keyword1, String keyword2) {
+        // List of base directories to check
+        List<Path> baseDirs = java.util.Arrays.asList(
+            Paths.get("/app/datasets"), // Docker
+            Paths.get("e:\\数据要素大赛作品\\数据集"), // Windows Abs
+            Paths.get("数据集") // Relative
+        );
+
+        for (Path baseDir : baseDirs) {
+            if (Files.exists(baseDir) && Files.isDirectory(baseDir)) {
+                System.err.println("Scanning directory: " + baseDir.toAbsolutePath());
+                try {
+                    // List all files and find match
+                     java.util.Optional<Path> match = Files.list(baseDir)
+                        .filter(p -> {
+                            String name = p.getFileName().toString();
+                            boolean isCsv = name.toLowerCase().endsWith(".csv");
+                            // Simple loose matching to avoid strict encoding issues
+                            // Check if name contains keywords (if basic string matching works)
+                            // Or just return it if it's the only CSV? No, there are multiple.
+                            // Let's print what we see
+                            System.err.println("  - Found file: " + name);
+                            return isCsv && (name.contains(keyword1) || name.contains(keyword2));
+                        })
+                        .findFirst();
+                    
+                    if (match.isPresent()) {
+                        System.err.println("  -> MATCH FOUND: " + match.get().toAbsolutePath());
+                        return match.get();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error listing files in " + baseDir + ": " + e.getMessage());
+                }
+            } else {
+                 System.err.println("Directory not found: " + baseDir.toAbsolutePath());
+            }
+        }
+        return null;
     }
 }
