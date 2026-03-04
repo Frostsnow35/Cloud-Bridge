@@ -244,22 +244,63 @@ public class RAGDataSeeder implements CommandLineRunner {
             if (Files.exists(baseDir) && Files.isDirectory(baseDir)) {
                 System.err.println("Scanning directory: " + baseDir.toAbsolutePath());
                 try {
-                    // List all files and find match
-                     java.util.Optional<Path> match = Files.list(baseDir)
+                    // Forcefully list all files to see what's actually there
+                    List<Path> allFiles = Files.list(baseDir).collect(Collectors.toList());
+                    for (Path p : allFiles) {
+                        System.err.println("  - Checking file: " + p.getFileName().toString());
+                    }
+
+                    // Content-based detection strategy
+                    // Iterate through all CSV files and check the first line
+                    for (Path p : allFiles) {
+                        String name = p.getFileName().toString();
+                        if (name.toLowerCase().endsWith(".csv")) {
+                            try {
+                                // Read header
+                                String header = "";
+                                // Try GBK first
+                                try {
+                                    List<String> lines = Files.readAllLines(p, java.nio.charset.Charset.forName("GBK"));
+                                    if (!lines.isEmpty()) header = lines.get(0);
+                                } catch (Exception e) {
+                                    // Try UTF-8
+                                    List<String> lines = Files.readAllLines(p, java.nio.charset.StandardCharsets.UTF_8);
+                                    if (!lines.isEmpty()) header = lines.get(0);
+                                }
+                                
+                                System.err.println("    Header for " + name + ": " + header);
+                                
+                                // Check for project list keywords in header
+                                if (keyword1.equals("科技项目")) {
+                                    if (header.contains("承担单位") || header.contains("项目名称")) {
+                                        System.err.println("  -> MATCH FOUND (Content-based): " + p.toAbsolutePath());
+                                        return p;
+                                    }
+                                }
+                                // Check for public platform keywords in header
+                                else if (keyword1.equals("公共数据")) {
+                                    if (header.contains("公共数据开放主体名称") || header.contains("数据集名称")) {
+                                        System.err.println("  -> MATCH FOUND (Content-based): " + p.toAbsolutePath());
+                                        return p;
+                                    }
+                                }
+                            } catch (Exception e) {
+                                System.err.println("    Failed to read header for " + name + ": " + e.getMessage());
+                            }
+                        }
+                    }
+                    
+                    // Fallback to name matching if content matching fails
+                    System.err.println("  No content match found, trying name match...");
+                     java.util.Optional<Path> match = allFiles.stream()
                         .filter(p -> {
                             String name = p.getFileName().toString();
-                            boolean isCsv = name.toLowerCase().endsWith(".csv");
-                            // Simple loose matching to avoid strict encoding issues
-                            // Check if name contains keywords (if basic string matching works)
-                            // Or just return it if it's the only CSV? No, there are multiple.
-                            // Let's print what we see
-                            System.err.println("  - Found file: " + name);
-                            return isCsv && (name.contains(keyword1) || name.contains(keyword2));
+                            return name.toLowerCase().endsWith(".csv") && (name.contains(keyword1) || name.contains(keyword2));
                         })
                         .findFirst();
                     
                     if (match.isPresent()) {
-                        System.err.println("  -> MATCH FOUND: " + match.get().toAbsolutePath());
+                        System.err.println("  -> MATCH FOUND (Name-based): " + match.get().toAbsolutePath());
                         return match.get();
                     }
                 } catch (Exception e) {
