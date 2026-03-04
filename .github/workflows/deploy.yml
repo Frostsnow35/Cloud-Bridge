@@ -76,3 +76,35 @@ jobs:
 
             # 5. Cleanup
             docker image prune -f
+
+            # 6. Post-Deploy Health Check
+            echo "Waiting for services to initialize (30s)..."
+            sleep 30
+            
+            echo "=== Docker Status ==="
+            docker ps -a
+            
+            echo "=== Port Check ==="
+            netstat -tulpn | grep -E ':(80|8080)' || echo "Ports not found in netstat"
+            
+            echo "=== Local Connectivity Check ==="
+            if curl -s -I http://localhost:80 > /dev/null; then
+                echo "✅ Frontend is reachable locally on port 80"
+            else
+                echo "❌ Frontend is NOT reachable locally on port 80"
+                echo "Dumping Frontend Logs:"
+                docker logs cloud-bridge-frontend --tail 50
+            fi
+            
+            if curl -s -I http://localhost:8080/api/health > /dev/null; then # Assuming /api/health or just check /api/
+                 echo "✅ Backend is reachable locally on port 8080"
+            else
+                 # Backend might 404 on root, but connection should work
+                 if curl -s http://localhost:8080 > /dev/null; then
+                     echo "⚠️ Backend is reachable but returned error (expected if root path 404)"
+                 else
+                     echo "❌ Backend is NOT reachable locally on port 8080"
+                     echo "Dumping Backend Logs:"
+                     docker logs cloud-bridge-backend --tail 50
+                 fi
+            fi
