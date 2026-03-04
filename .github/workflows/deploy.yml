@@ -41,11 +41,26 @@ jobs:
             # Force git to trust the directory
             git config --global --add safe.directory /opt/cloud-bridge
             
-            if [ ! -d ".git" ]; then
-              git clone https://github.com/Frostsnow35/Cloud-Bridge.git .
+            # If directory exists but is not a git repo, clean it up to allow clone
+            if [ -d ".git" ]; then
+               echo "Git repo exists, fetching updates..."
+               git fetch origin main
+               git reset --hard origin/main
             else
-              git fetch origin main
-              git reset --hard origin/main
+               echo "Directory exists but not a git repo (or empty). Cleaning up..."
+               # CAUTION: Back up datasets if they exist, then clean
+               if [ -d "数据集" ]; then mv "数据集" /tmp/datasets_backup; fi
+               
+               # Remove all files in current dir to allow clone
+               find . -maxdepth 1 -not -name '.' -not -name '..' -exec rm -rf {} +
+               
+               echo "Cloning fresh repo..."
+               git clone https://github.com/Frostsnow35/Cloud-Bridge.git .
+               
+               # Restore datasets if we backed them up
+               if [ -d "/tmp/datasets_backup" ]; then 
+                  mv /tmp/datasets_backup "数据集"
+               fi
             fi
 
             # 3. Configure Env
