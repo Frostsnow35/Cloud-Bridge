@@ -1,0 +1,28 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            # 1. Check Service Status
+            echo "=== Docker Container Status ==="
+            docker ps -a
+            
+            echo "=== Backend Logs (Last 50 lines) ==="
+            docker logs cloud-bridge-backend --tail 50
+            
+            echo "=== Frontend Logs (Last 50 lines) ==="
+            docker logs cloud-bridge-frontend --tail 50
