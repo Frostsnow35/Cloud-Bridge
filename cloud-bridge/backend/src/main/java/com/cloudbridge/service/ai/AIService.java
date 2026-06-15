@@ -79,14 +79,14 @@ public class AIService {
             "- 个人中心、我的主页 -> /profile\n" +
             "- 首页 -> /\n" +
             "**私有数据路由（需鉴权）**：\n" +
-            "- 我的需求、我的发布 -> /profile/my-needs\n" +
-            "- 我的成果 -> /profile/my-achievements\n" +
-            "- 我的申请、审批进度 -> /profile/applications\n" +
-            "- 我的收藏、关注 -> /profile/collections\n" +
+            "- 我的需求、我的发布 -> /profile (参数: tab=demands)\n" +
+            "- 我的成果 -> /profile (参数: tab=achievements)\n" +
+            "- 我的申请、审批进度 -> /messages (参数: tab=sent)\n" +
+            "- 我的收藏、关注 -> /profile (参数: tab=favorites)\n" +
             "\n" +
             "**输出格式示例**：\n" +
             "1. 跳转示例：\n" +
-            "   {\"intent\": \"NAVIGATE\", \"reply\": \"好的，正在为您查找碳纤维相关技术...\", \"action\": {\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/market\", \"query\": {\"keyword\": \"碳纤维\"}}}}\n" +
+            "   {\"intent\": \"NAVIGATE\", \"reply\": \"好的，正在为您查找碳纤维相关技术...\", \"action\": {\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/achievements\", \"query\": {\"keyword\": \"碳纤维\"}}}}\n" +
             "2. 拒答示例：\n" +
             "   {\"intent\": \"CHAT\", \"reply\": \"这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？\"}\n" +
             "3. 术语解释示例：\n" +
@@ -119,35 +119,67 @@ public class AIService {
         String reply = "抱歉，我现在还在学习中。";
         String actionJson = "null";
 
-        if (message.contains("匹配") || message.contains("找")) {
+        if (containsAny(message, "我的需求", "我的发布")) {
             intent = "NAVIGATE";
-            reply = "好的，正在为您跳转匹配页面...";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/smart-match\"}}";
+            reply = "正在为您打开个人中心中的需求页签...";
+            actionJson = navigateAction("/profile", "tab", "demands");
+        } else if (message.contains("我的成果")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开个人中心中的成果页签...";
+            actionJson = navigateAction("/profile", "tab", "achievements");
+        } else if (containsAny(message, "申请", "审批")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开消息中心的发送记录...";
+            actionJson = navigateAction("/messages", "tab", "sent");
+        } else if (containsAny(message, "收藏", "关注")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开个人中心中的收藏页签...";
+            actionJson = navigateAction("/profile", "tab", "favorites");
+        } else if (containsAny(message, "发布需求")) {
+            intent = "NAVIGATE";
+            reply = "您可以前往需求发布页继续操作。";
+            actionJson = navigateAction("/needs/publish");
+        } else if (containsAny(message, "成果", "技术")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开成果大厅...";
+            actionJson = navigateAction("/achievements");
+        } else if (containsAny(message, "专利")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开专利资源库...";
+            actionJson = navigateAction("/libraries/patents");
+        } else if (containsAny(message, "企业", "公司")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开企业资源库...";
+            actionJson = navigateAction("/libraries/enterprises");
+        } else if (containsAny(message, "专家", "人才")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开专家资源库...";
+            actionJson = navigateAction("/libraries/experts");
+        } else if (containsAny(message, "设备", "仪器")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开设备资源库...";
+            actionJson = navigateAction("/libraries/equipments");
+        } else if (containsAny(message, "政策")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开政策资源库...";
+            actionJson = navigateAction("/libraries/policies");
+        } else if (containsAny(message, "资金")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开需求大厅...";
+            actionJson = navigateAction("/needs");
+        } else if (containsAny(message, "匹配", "找")) {
+            intent = "NAVIGATE";
+            reply = "好的，正在为您跳转智能匹配页面...";
+            actionJson = navigateAction("/match");
         } else if (message.contains("发布")) {
             intent = "NAVIGATE";
             reply = "您可以前往需求大厅发布需求。";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/needs/add\"}}";
-        } else if (message.contains("我的需求") || message.contains("我的发布")) {
-            intent = "NAVIGATE";
-            reply = "正在为您跳转到我的需求管理页面...";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/my-needs\"}}";
-        } else if (message.contains("我的成果")) {
-            intent = "NAVIGATE";
-            reply = "正在为您跳转到我的成果管理页面...";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/my-achievements\"}}";
-        } else if (message.contains("申请") || message.contains("审批")) {
-            intent = "NAVIGATE";
-            reply = "正在为您跳转到申请记录页面...";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/applications\"}}";
-        } else if (message.contains("收藏") || message.contains("关注")) {
-            intent = "NAVIGATE";
-            reply = "正在为您跳转到我的收藏页面...";
-            actionJson = "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/profile/collections\"}}";
-        } else if (message.contains("bug") || message.contains("反馈") || message.contains("问题")) {
+            actionJson = navigateAction("/needs/publish");
+        } else if (containsAny(message, "bug", "反馈", "问题")) {
             intent = "FEEDBACK";
             reply = "请填写反馈表单。";
             actionJson = "{\"type\": \"OPEN_FEEDBACK_FORM\"}";
-        } else if (message.contains("天气") || message.contains("对比") || message.contains("好不好")) {
+        } else if (containsAny(message, "天气", "对比", "好不好")) {
             intent = "CHAT";
             reply = "这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？";
         }
@@ -249,6 +281,9 @@ public class AIService {
     public java.util.Map<Long, Double> evaluateMatches(String demandDesc, MatchingProfile profile, java.util.List<com.cloudbridge.entity.Achievement> candidates) {
         if (candidates.isEmpty()) return java.util.Collections.emptyMap();
         
+        // REVERTED: Removed Few-Shot Learning to avoid algorithm bias against new/unknown fields.
+        // We rely purely on the Model's General Knowledge + Logical Reasoning.
+
         // Construct batch prompt
         StringBuilder candidateText = new StringBuilder();
         for (com.cloudbridge.entity.Achievement a : candidates) {
@@ -299,6 +334,67 @@ public class AIService {
         }
     }
 
+    public com.cloudbridge.entity.EvaluationMetrics analyzeAchievement(com.cloudbridge.entity.Achievement achievement) {
+        String prompt = String.format(
+            "你是一个资深技术评估专家。请对以下科技成果进行多维度量化评估。\n" +
+            "**成果信息**：\n" +
+            "- 标题：%s\n" +
+            "- 描述：%s\n" +
+            "- 领域：%s\n" +
+            "- 用户自选标签：%s\n" + // User provided tags context
+            "\n" +
+            "**逻辑推理任务（Pre-computation Logic）**：\n" +
+            "1. **分类推断**：首先尊重用户的自选标签，结合描述进行标准化分类（如'人工智能-计算机视觉'）。如果用户标签明显错误（如把'苹果'归为'电子产品'），请修正。\n" +
+            "2. **应用场景推演**：基于技术原理，列举3个最可能的应用场景。\n" +
+            "3. **价值评估**：\n" +
+            "   - **行业成熟度 (Maturity)**：技术在当前行业的应用成熟程度（0-100）。\n" +
+            "   - **创新性 (Innovation)**：相比现有技术的突破程度（0-100）。\n" +
+            "   - **技术价值 (Value)**：潜在的经济效益或社会效益（0-100）。\n" +
+            "   - **成本效益 (Cost)**：实施成本与收益的比例（0-100）。\n" +
+            "\n" +
+            "请返回一个JSON对象，包含上述推断结果。\n" +
+            "JSON格式示例：\n" +
+            "{\"category\": \"...\", \"scenarios\": [\"...\", \"...\"], \"maturity\": 85, \"innovation\": 70, \"value\": 90, \"cost\": 60, \"analysis\": \"...\"}\n" +
+            "只返回JSON，不要Markdown。",
+            achievement.getTitle(), achievement.getDescription(), achievement.getField(), 
+            achievement.getTags() != null ? achievement.getTags() : "无"
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.2); // Low temp for stability
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a professional technology evaluator. Output valid JSON only."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String json = callAI(request);
+            JsonNode node = objectMapper.readTree(json);
+            
+            com.cloudbridge.entity.EvaluationMetrics metrics = new com.cloudbridge.entity.EvaluationMetrics();
+            metrics.setAchievement(achievement);
+            metrics.setTechnologyMaturity(node.path("maturity").asInt(50));
+            metrics.setInnovationLevel(node.path("innovation").asInt(50));
+            metrics.setEconomicValue(node.path("value").asInt(50));
+            metrics.setCostEfficiency(node.path("cost").asInt(50));
+            metrics.setAnalysisReport(node.path("analysis").asText("分析暂缺"));
+            
+            return metrics;
+        } catch (Exception e) {
+            System.err.println("AI Analysis Failed: " + e.getMessage());
+            // Fallback
+            com.cloudbridge.entity.EvaluationMetrics fallback = new com.cloudbridge.entity.EvaluationMetrics();
+            fallback.setAchievement(achievement);
+            fallback.setTechnologyMaturity(60);
+            fallback.setInnovationLevel(60);
+            fallback.setEconomicValue(60);
+            fallback.setCostEfficiency(60);
+            fallback.setAnalysisReport("AI分析服务暂时不可用，基于默认规则评估。");
+            return fallback;
+        }
+    }
+
     private String callAI(AIRequest request) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -307,6 +403,8 @@ public class AIService {
         }
 
         HttpEntity<AIRequest> entity = new HttpEntity<>(request, headers);
+        
+        // NVIDIA api.nvidia.com uses standard OpenAI format
         ResponseEntity<AIResponse> response = restTemplate.postForEntity(apiUrl, entity, AIResponse.class);
         
         if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
@@ -577,5 +675,30 @@ public class AIService {
         }
         // Fallback for Chinese or long text without spaces: take first 4 chars
         return text.substring(0, Math.min(text.length(), 4));
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        if (text == null || keywords == null) {
+            return false;
+        }
+        for (String keyword : keywords) {
+            if (keyword != null && text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String navigateAction(String path) {
+        return String.format("{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"%s\"}}", path);
+    }
+
+    private String navigateAction(String path, String queryKey, String queryValue) {
+        return String.format(
+            "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"%s\", \"query\": {\"%s\": \"%s\"}}}",
+            path,
+            queryKey,
+            queryValue
+        );
     }
 }

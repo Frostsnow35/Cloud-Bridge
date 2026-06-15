@@ -93,8 +93,8 @@
               </div>
             </div>
 
-            <!-- Bids List for Owner and Expert -->
-            <div v-if="(isOwner || isExpert) && demand.type === 'REWARD'" class="detail-section">
+            <!-- Bids List for Owner and Achievement-side users -->
+            <div v-if="(isOwner || isAchievementUser) && demand.type === 'REWARD'" class="detail-section">
               <h3 class="section-title">
                 揭榜记录
                 <el-badge :value="bids.length" type="primary" class="ml-2" />
@@ -116,7 +116,7 @@
                       <el-button size="small" type="success" @click="handleUpdateBidStatus(scope.row, 'ACCEPTED')">采纳</el-button>
                       <el-button size="small" type="danger" @click="handleUpdateBidStatus(scope.row, 'REJECTED')">拒绝</el-button>
                     </template>
-                    <el-button v-if="isExpert" size="small" type="primary" @click="openReviewDialog(scope.row)">评审</el-button>
+                    <el-button v-if="isAchievementUser" size="small" type="primary" @click="openReviewDialog(scope.row)">评审</el-button>
                     <el-button v-if="isOwner" size="small" type="warning" plain @click="openReviewListDialog(scope.row)">查看评审</el-button>
                     <el-button v-if="scope.row.txHash" size="small" type="info" link @click="viewOnChain(scope.row.txHash)">链上核验</el-button>
                   </template>
@@ -294,8 +294,8 @@ const isAdmin = computed(() => {
   return userStore.isLoggedIn && userStore.userRole === 'ADMIN'
 })
 
-const isExpert = computed(() => {
-  return userStore.isLoggedIn && userStore.userRole === 'EXPERT'
+const isAchievementUser = computed(() => {
+  return userStore.isLoggedIn && userStore.isAchievementUser
 })
 
 const statusType = computed(() => {
@@ -329,8 +329,8 @@ const fetchDetail = async (id: string) => {
         // Fetch analysis only if we have valid data
         fetchAnalysis(demand.value)
         
-        // If owner or expert, fetch bids
-        if ((isOwner.value || isExpert.value) && demand.value.type === 'REWARD') {
+        // If owner or achievement-side user, fetch bids
+        if ((isOwner.value || isAchievementUser.value) && demand.value.type === 'REWARD') {
           fetchBids(id)
         }
     } else {
@@ -362,6 +362,13 @@ const handleBid = () => {
     router.push('/login')
     return
   }
+
+  if (!userStore.isAchievementUser) {
+    ElMessage.warning('只有成果方账号可以揭榜或响应需求')
+    router.push('/profile')
+    return
+  }
+
   bidDialog.visible = true
 }
 
@@ -509,6 +516,13 @@ const handleContact = () => {
     router.push('/login')
     return
   }
+
+  if (!userStore.isAchievementUser) {
+    ElMessage.warning('只有成果方账号可以联系需求方')
+    router.push('/profile')
+    return
+  }
+
   if (demand.value && demand.value.id) {
     router.push(`/needs/${demand.value.id}/contact`)
   }

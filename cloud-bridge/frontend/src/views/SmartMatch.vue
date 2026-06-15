@@ -62,7 +62,7 @@
           </div>
 
           <div class="section-header">
-            <h3>{{ exactMatches.length > 0 ? `匹配结果 (${exactMatches.length})` : '匹配结果' }}</h3>
+            <h3>{{ (exactMatches.length > 0) ? '匹配结果' : '匹配结果' }}</h3>
             <div class="header-actions">
               <el-tag effect="dark" class="keyword-tag">核心词：{{ extractedKeyword || '自动识别' }}</el-tag>
             </div>
@@ -70,21 +70,14 @@
           
           <el-empty v-if="!loading && exactMatches.length === 0 && recommendations.length === 0" description="暂无匹配结果，请尝试优化描述" />
           
-          <div v-if="!loading && exactMatches.length === 0 && recommendations.length > 0" class="recommendation-hint">
-            <el-alert
-              title="未找到完全匹配的成果，已为您推荐相关领域的优质项目"
-              type="info"
-              show-icon
-              :closable="false"
-              class="mb-4"
-            />
-          </div>
-
           <div class="results-grid">
             <!-- Exact Matches -->
             <div v-for="item in exactMatches" :key="'exact-' + item.id" class="result-card-wrapper">
               <div class="result-card exact-match-card" @click="goToDetail(item.id)">
-                <div class="match-badge">匹配结果</div>
+                <div class="match-badge" :class="item.matchLevel === 'HIGH' ? 'high-match' : ''">
+                    {{ item.matchLevel === 'HIGH' ? '高匹配度' : '智能匹配' }}
+                </div>
+                
                 <div class="card-status">
                   <span :class="['status-dot', getStatusType(item.status)]"></span>
                   {{ item.status }}
@@ -92,6 +85,70 @@
                 <h4 class="title" :title="item.title">{{ item.title }}</h4>
                 <p class="description">{{ item.description }}</p>
                 
+                <!-- Explanation Section -->
+                <div v-if="item.explanation" class="explanation-section">
+                  <div class="explanation-header">
+                    <el-icon class="explanation-icon"><Search /></el-icon>
+                    <span>匹配解释</span>
+                    <span v-if="!item.explanation.degraded" class="evidence-badge">真实证据</span>
+                  </div>
+                  
+                  <!-- Summary Card -->
+                  <div v-if="item.explanation.summary" class="explanation-summary-card">
+                    <div class="summary-icon"><el-icon><Lightbulb /></el-icon></div>
+                    <div class="summary-content">
+                      <span class="summary-label">匹配摘要</span>
+                      <p class="summary-text">{{ item.explanation.summary }}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Graph Path -->
+                  <div v-if="item.explanation.graphPath" class="graph-path-card">
+                    <div class="path-header">
+                      <el-icon><GitBranch /></el-icon>
+                      <span>匹配路径</span>
+                    </div>
+                    <div class="path-content">
+                      <el-tag size="small" type="info" class="path-tag">{{ item.explanation.graphPath }}</el-tag>
+                    </div>
+                  </div>
+                  
+                  <!-- Matching Rules -->
+                  <div v-if="item.explanation.matchingRules && item.explanation.matchingRules.length > 0" class="rules-card">
+                    <div class="rules-header">
+                      <el-icon><CheckCircle /></el-icon>
+                      <span>命中规则</span>
+                    </div>
+                    <div class="rules-list">
+                      <div v-for="(rule, idx) in item.explanation.matchingRules" :key="idx" class="rule-item">
+                        <span class="rule-bullet">✓</span>
+                        <span class="rule-text">{{ rule }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Degraded Badge -->
+                  <div v-if="item.explanation.degraded" class="degraded-badge">
+                    <el-tag type="warning" size="small">当前为降级模式，部分匹配证据不可用</el-tag>
+                  </div>
+                </div>
+                
+                <!-- Evaluation Radar (Mini) -->
+                <div v-if="item.evaluation" class="evaluation-mini">
+                    <div class="eval-row">
+                        <span class="eval-label">成熟度</span>
+                        <el-progress :percentage="item.evaluation.maturity" :color="getScoreColor(item.evaluation.maturity)" :stroke-width="6" :show-text="false" />
+                    </div>
+                    <div class="eval-row">
+                        <span class="eval-label">创新性</span>
+                        <el-progress :percentage="item.evaluation.innovation" :color="getScoreColor(item.evaluation.innovation)" :stroke-width="6" :show-text="false" />
+                    </div>
+                     <div class="eval-row">
+                        <span class="eval-label">性价比</span>
+                        <el-progress :percentage="item.evaluation.cost" :color="getScoreColor(item.evaluation.cost)" :stroke-width="6" :show-text="false" />
+                    </div>
+                </div>
+
                 <div class="card-meta">
                   <div class="tags">
                     <span class="meta-tag field-tag">{{ item.field }}</span>
@@ -150,7 +207,7 @@ import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 // Icons are globally registered in main.ts, but explicit import is safe
-import { Cpu, Share, Connection, Search, TrendCharts } from '@element-plus/icons-vue'
+import { Cpu, Share, TrendCharts } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 const route = useRoute()
@@ -214,6 +271,22 @@ interface Achievement {
   price: number;
   status: string;
   ownerId: number;
+  evaluation?: {
+    maturity: number;
+    innovation: number;
+    value: number;
+    cost: number;
+    analysis: string;
+  };
+  matchLevel?: string; // HIGH, MEDIUM, LOW
+  explanation?: {
+    keyword: string;
+    domain: string;
+    matchingRules: string[];
+    graphPath: string;
+    summary: string;
+    degraded: boolean;
+  };
 }
 
 interface CloudTag {
@@ -494,6 +567,12 @@ onUnmounted(() => {
     window.removeEventListener('resize', handleResize)
 })
 
+const getScoreColor = (score: number) => {
+    if (score >= 80) return '#67C23A';
+    if (score >= 60) return '#E6A23C';
+    return '#F56C6C';
+}
+
 const getStatusType = (status: string) => {
   switch (status) {
     case 'PUBLISHED': return 'status-published';
@@ -521,6 +600,8 @@ const onMatch = async () => {
   hasSearched.value = true
   exactMatches.value = []
   recommendations.value = []
+  extractedKeyword.value = ''
+  aiGraph.value = null
   
   try {
     const response = await axios.post('/api/matching/match', {
@@ -528,7 +609,7 @@ const onMatch = async () => {
     })
     
     // Handle new response structure
-    if (response.data && typeof response.data === 'object' && 'matches' in response.data) {
+    if (response.data && !Array.isArray(response.data) && typeof response.data === 'object') {
         exactMatches.value = response.data.matches || []
         recommendations.value = response.data.recommendations || []
         const keywords = response.data.relatedKeywords || []
@@ -543,12 +624,10 @@ const onMatch = async () => {
              extractedKeyword.value = form.description.substring(0, 4)
              generateRelatedTags([extractedKeyword.value])
         }
-    } else {
+    } else if (Array.isArray(response.data)) {
         // Fallback for old API structure (List<Achievement>)
-        if (Array.isArray(response.data)) {
-            exactMatches.value = response.data
-            aiGraph.value = null // Reset if old structure
-        }
+        exactMatches.value = response.data
+        aiGraph.value = null // Reset if old structure
     }
     
     nextTick(() => {
@@ -990,8 +1069,201 @@ const onMatch = async () => {
   color: var(--text-secondary);
 }
 
+.evaluation-mini {
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+}
+
+.eval-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.eval-row:last-child {
+    margin-bottom: 0;
+}
+
+.eval-label {
+    width: 50px;
+    font-size: 11px;
+    color: #888;
+}
+
+.high-match {
+    background: #67C23A; /* Green for high confidence */
+    color: #fff;
+}
+
 .exact-match-card {
   border: 1px solid var(--gold-glow);
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+/* Explanation Section Styles */
+.explanation-section {
+  margin: 16px 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  margin-bottom: 4px;
+}
+
+.evidence-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(103, 194, 58, 0.15);
+  color: #67C23A;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Summary Card */
+.explanation-summary-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 193, 7, 0.04) 100%);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.summary-icon {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 215, 0, 0.15);
+  border-radius: 8px;
+  color: #FFD700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.summary-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-text {
+  font-size: 13px;
+  color: #ddd;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Graph Path Card */
+.graph-path-card {
+  padding: 10px 12px;
+  background: rgba(64, 158, 255, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid var(--el-color-primary);
+}
+
+.path-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.path-content {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.path-tag {
+  background: rgba(64, 158, 255, 0.15) !important;
+  color: #409EFF !important;
+  border: 1px solid rgba(64, 158, 255, 0.3) !important;
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+/* Rules Card */
+.rules-card {
+  padding: 12px;
+  background: rgba(103, 194, 58, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(103, 194, 58, 0.15);
+}
+
+.rules-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #67C23A;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rule-bullet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(103, 194, 58, 0.15);
+  color: #67C23A;
+  border-radius: 50%;
+  font-size: 10px;
+  flex-shrink: 0;
+  line-height: 16px;
+}
+
+.rule-text {
+  font-size: 12px;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.degraded-badge {
+  padding: 8px 12px;
+  background: rgba(230, 162, 60, 0.1);
+  border-radius: 6px;
+  text-align: center;
 }
 </style>

@@ -197,8 +197,8 @@ onMounted(() => {
     return
   }
   
-  if (userStore.userRole !== 'EXPERT') {
-    ElMessage.error('只有专家用户可以发布成果')
+  if (!userStore.isAchievementUser) {
+    ElMessage.error('当前账号不属于成果方，无法发布成果')
     router.push('/profile')
     return
   }

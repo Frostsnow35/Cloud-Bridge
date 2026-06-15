@@ -120,6 +120,18 @@ onMounted(async () => {
     router.push('/login')
     return
   }
+
+  if (isDemand.value && !userStore.isAchievementUser) {
+    ElMessage.warning('只有成果方账号可以联系需求发布方')
+    router.push('/profile')
+    return
+  }
+
+  if (!isDemand.value && !userStore.isDemandUser) {
+    ElMessage.warning('只有需求方账号可以联系成果负责人')
+    router.push('/profile')
+    return
+  }
   
   const id = route.params.id
   if (id) {

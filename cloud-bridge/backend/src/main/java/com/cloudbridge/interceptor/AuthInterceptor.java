@@ -21,6 +21,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        String requestUri = request.getRequestURI();
+        boolean requiresAuth = requestUri.startsWith("/api/messages")
+                || "/api/auth/me".equals(requestUri);
+
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
@@ -33,8 +37,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
         }
 
-        // Allow GET requests to proceed without auth (public access)
-        // But POST/PUT/DELETE require auth
+        if (requiresAuth) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        // Allow GET requests to proceed without auth on public endpoints.
         if ("GET".equalsIgnoreCase(request.getMethod())) {
             return true;
         }

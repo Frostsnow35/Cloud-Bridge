@@ -8,6 +8,8 @@ services:
     container_name: cloud-bridge-backend
     ports:
       - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/cloud_bridge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - SPRING_DATASOURCE_USERNAME=user
@@ -22,7 +24,7 @@ services:
       - SPRING_ELASTICSEARCH_URIS=elasticsearch:9200
       # AI Config (Override these in production or .env)
       - AI_API_URL=${AI_API_URL:-http://api.siliconflow.cn/v1/chat/completions}
-      - AI_API_KEY=${AI_API_KEY:-sk-zzfnrqhpsxrvkutyjqbkfukflugzkurpwbhmopzpsxygukqm}
+      - AI_API_KEY=${AI_API_KEY:-sk-your-key}
       - AI_API_MODEL=${AI_API_MODEL:-deepseek-ai/DeepSeek-R1-0528-Qwen3-8B}
     depends_on:
       - mysql
@@ -102,6 +104,7 @@ volumes:
   redis_data:
   neo4j_data:
   es_data:
+  uploads_data:
 
 networks:
   cloud-bridge-net:

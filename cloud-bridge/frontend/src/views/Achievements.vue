@@ -9,7 +9,7 @@
         </div>
         <div class="actions">
            <!-- Publish Button -->
-           <el-button type="primary" size="large" class="publish-btn" @click="$router.push('/achievements/publish')">发布成果</el-button>
+           <el-button type="primary" size="large" class="publish-btn" @click="navigateToPublish">发布成果</el-button>
         </div>
       </div>
 
@@ -99,9 +99,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Search, ArrowRight, Trophy, School } from '@element-plus/icons-vue'
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 const loading = ref(false)
 const searchQuery = ref('')
 const activeField = ref('All')
@@ -186,6 +189,22 @@ const filteredAchievements = computed(() => {
 
 const viewDetails = (id: number) => {
   router.push(`/achievements/${id}`)
+}
+
+const navigateToPublish = () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后发布成果')
+    router.push({ path: '/login', query: { redirect: '/achievements/publish' } })
+    return
+  }
+
+  if (!userStore.isAchievementUser) {
+    ElMessage.warning('当前账号不属于成果方，请切换成果方账号后继续')
+    router.push('/profile')
+    return
+  }
+
+  router.push('/achievements/publish')
 }
 
 // Helpers

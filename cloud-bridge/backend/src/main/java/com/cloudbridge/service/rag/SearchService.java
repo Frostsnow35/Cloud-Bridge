@@ -31,6 +31,14 @@ public class SearchService {
     private final Map<String, Map<String, String>> memoryStore = new ConcurrentHashMap<>();
 
     public void createIndex(String indexName) {
+        createIndex(indexName, 0); // Default no vector
+    }
+
+    public void createVectorIndex(String indexName, int dimension) {
+        createIndex(indexName, dimension);
+    }
+
+    private void createIndex(String indexName, int dimension) {
         // Initialize memory store for this index
         memoryStore.computeIfAbsent(indexName, k -> new ConcurrentHashMap<>());
         
@@ -45,10 +53,28 @@ public class SearchService {
             // Not exists, create
         }
         
-        String body = "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}}";
+        String body;
+        if (dimension > 0) {
+            // Create with dense_vector mapping
+            body = "{" +
+                   "  \"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}," +
+                   "  \"mappings\": {" +
+                   "    \"properties\": {" +
+                   "      \"embedding\": {" +
+                   "        \"type\": \"dense_vector\"," +
+                   "        \"dims\": " + dimension +
+                   "      }" +
+                   "    }" +
+                   "  }" +
+                   "}";
+        } else {
+            body = "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}}";
+        }
+
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         try {
             restTemplate.put(url, entity);
+            System.out.println("Created index " + indexName + " with vector support (dim=" + dimension + ")");
         } catch (Exception e) {
             System.err.println("Failed to create index " + indexName + ": " + e.getMessage());
         }
@@ -97,6 +123,61 @@ public class SearchService {
             System.err.println("ES Search failed (" + e.getMessage() + "), returning mock data for " + indexName);
             return getMockData(indexName, queryText);
         }
+    }
+
+    public List<String> searchVector(String indexName, List<Double> queryVector, int limit) {
+        String url = esUrl + "/" + indexName + "/_search";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> bodyMap = new java.util.HashMap<>();
+        
+        // Script Score Query for Cosine Similarity
+        // "script_score": {
+        //   "query": {"match_all": {}},
+        //   "script": {
+        //     "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+        //     "params": {"query_vector": [...]}
+        //   }
+        // }
+        
+        Map<String, Object> script = new java.util.HashMap<>();
+        script.put("source", "cosineSimilarity(params.query_vector, 'embedding') + 1.0");
+        script.put("params", Collections.singletonMap("query_vector", queryVector));
+        
+        Map<String, Object> scriptScore = new java.util.HashMap<>();
+        scriptScore.put("query", Collections.singletonMap("match_all", new java.util.HashMap<>()));
+        scriptScore.put("script", script);
+        
+        Map<String, Object> query = new java.util.HashMap<>();
+        query.put("script_score", scriptScore);
+        
+        bodyMap.put("query", query);
+        bodyMap.put("size", limit);
+
+        HttpEntity<Object> entity = new HttpEntity<>(bodyMap, headers);
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, entity, JsonNode.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode hits = response.getBody().path("hits").path("hits");
+                List<String> results = new ArrayList<>();
+                if (hits.isArray()) {
+                    for (JsonNode hit : hits) {
+                        // Include score if needed, but for now just source
+                        // Maybe add ID to source?
+                        JsonNode source = hit.path("_source");
+                        // We might want to inject the score into the result JSON
+                        // double score = hit.path("_score").asDouble();
+                        results.add(source.toString());
+                    }
+                }
+                return results;
+            }
+        } catch (Exception e) {
+            // Fallback: If vector search fails (e.g. index doesn't exist or no vector support), return empty
+             System.err.println("Vector search failed: " + e.getMessage());
+        }
+        return Collections.emptyList();
     }
 
     private List<String> searchES(String indexName, String queryText) {

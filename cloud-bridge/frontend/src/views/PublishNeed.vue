@@ -139,8 +139,8 @@ onMounted(() => {
     return
   }
   
-  if (userStore.userRole !== 'ENTERPRISE') {
-    ElMessage.error('只有企业用户可以发布需求')
+  if (!userStore.isDemandUser) {
+    ElMessage.error('当前账号不属于需求方，无法发布需求')
     router.push('/profile')
     return
   }

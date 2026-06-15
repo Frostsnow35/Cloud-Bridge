@@ -66,9 +66,11 @@
     <div class="section-container full-width-bg">
       <div class="content-wrapper">
         <h2 class="section-title">精选成果</h2>
-        <el-carousel :interval="4000" type="card" height="340px" indicator-position="outside">
+        <el-carousel :interval="4000" type="card" height="360px" indicator-position="outside">
           <el-carousel-item v-for="item in featuredAchievements" :key="item.id">
-            <div class="carousel-card" @click="$router.push(`/achievements/${item.id}`)">
+            <div class="carousel-card" @click="$router.push(`/achievements/${item.id}`)" 
+                 :style="{ backgroundImage: `url(${item.image})` }">
+              <div class="card-overlay"></div>
               <div class="card-glow"></div>
               <div class="carousel-content">
                 <div class="card-header">
@@ -79,7 +81,7 @@
                   <span class="meta-tag field-tag">{{ item.field }}</span>
                   <span class="meta-tag maturity-tag">{{ item.maturity }}</span>
                 </div>
-                <p>{{ item.desc }}</p>
+                <p class="card-desc">{{ item.desc }}</p>
                 <el-button text class="view-btn">查看详情 <el-icon><ArrowRight /></el-icon></el-button>
               </div>
             </div>
@@ -635,5 +637,146 @@ const searchTag = (tag: string) => {
 .news-card:hover .arrow-icon {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Featured Achievements Carousel Card Styles */
+.el-carousel__item--card {
+  padding: 0 !important;
+}
+
+.carousel-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.carousel-card:hover {
+  transform: scale(1.02);
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  z-index: 1;
+}
+
+.card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at top,
+    rgba(255, 215, 0, 0.15) 0%,
+    transparent 60%
+  );
+  z-index: 1;
+}
+
+.carousel-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.4;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  flex: 1;
+  padding-right: 12px;
+}
+
+.price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFD700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.meta-tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.field-tag {
+  background: rgba(64, 158, 255, 0.2);
+  color: #409EFF;
+  border: 1px solid rgba(64, 158, 255, 0.3);
+}
+
+.maturity-tag {
+  background: rgba(103, 194, 58, 0.2);
+  color: #67C23A;
+  border: 1px solid rgba(103, 194, 58, 0.3);
+}
+
+.card-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.view-btn {
+  color: #FFD700 !important;
+  font-size: 14px;
+  padding: 8px 0 !important;
+  transition: all 0.3s;
+}
+
+.view-btn:hover {
+  color: #fff !important;
+}
+
+/* Carousel Card Active State */
+.el-carousel__item.is-active .carousel-card {
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.2);
 }
 </style>

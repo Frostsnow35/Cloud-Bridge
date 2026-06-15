@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,9 +27,18 @@ public class MessageController {
     private MessageRepository messageRepository;
 
     @PostMapping
-    public ResponseEntity<?> sendMessage(@Valid @RequestBody Message message) {
-        if (message.getSenderId() == null || message.getReceiverId() == null) {
-            return ResponseEntity.badRequest().body("Sender and Receiver IDs are required");
+    public ResponseEntity<?> sendMessage(@Valid @RequestBody Message message, HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        if (message.getReceiverId() == null) {
+            return ResponseEntity.badRequest().body("Receiver ID is required");
+        }
+
+        if (message.getSenderId() != null && !currentUserId.equals(message.getSenderId())) {
+            return ResponseEntity.status(403).body("Sender ID does not match current user");
         }
 
         // Basic sanitization
@@ -45,6 +55,7 @@ public class MessageController {
             message.setAttachmentUrl(Jsoup.clean(message.getAttachmentUrl(), Safelist.none()));
         }
 
+        message.setSenderId(currentUserId);
         message.setCreatedAt(LocalDateTime.now());
         message.setRead(false);
         
@@ -52,35 +63,108 @@ public class MessageController {
         return ResponseEntity.ok(savedMessage);
     }
 
+    @GetMapping("/received")
+    public ResponseEntity<?> getCurrentUserReceivedMessages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request
+    ) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        Page<Message> messages = messageRepository.findByReceiverId(
+                currentUserId,
+                PageRequest.of(page, size, Sort.by("createdAt").descending())
+        );
+        return ResponseEntity.ok(messages);
+    }
+
     @GetMapping("/received/{userId}")
-    public Page<Message> getReceivedMessages(
+    public ResponseEntity<?> getReceivedMessages(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request
     ) {
-        return messageRepository.findByReceiverId(userId, PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        if (!currentUserId.equals(userId)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+        Page<Message> messages = messageRepository.findByReceiverId(
+                currentUserId,
+                PageRequest.of(page, size, Sort.by("createdAt").descending())
+        );
+        return ResponseEntity.ok(messages);
+    }
+
+    @GetMapping("/sent")
+    public ResponseEntity<?> getCurrentUserSentMessages(HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        return ResponseEntity.ok(messageRepository.findBySenderId(currentUserId));
     }
 
     @GetMapping("/sent/{userId}")
-    public List<Message> getSentMessages(@PathVariable Long userId) {
-        return messageRepository.findBySenderId(userId);
+    public ResponseEntity<?> getSentMessages(@PathVariable Long userId, HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        if (!currentUserId.equals(userId)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+        return ResponseEntity.ok(messageRepository.findBySenderId(currentUserId));
+    }
+
+    @GetMapping("/unread")
+    public ResponseEntity<?> getCurrentUserUnreadCount(HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", messageRepository.countByReceiverIdAndIsReadFalse(currentUserId));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/unread/{userId}")
-    public ResponseEntity<Map<String, Long>> getUnreadCount(@PathVariable Long userId) {
-        long count = messageRepository.countByReceiverIdAndIsReadFalse(userId);
+    public ResponseEntity<?> getUnreadCount(@PathVariable Long userId, HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        if (!currentUserId.equals(userId)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
         Map<String, Long> response = new HashMap<>();
-        response.put("count", count);
+        response.put("count", messageRepository.countByReceiverIdAndIsReadFalse(currentUserId));
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+    public ResponseEntity<?> markAsRead(@PathVariable Long id, HttpServletRequest request) {
+        Long currentUserId = getCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
         return messageRepository.findById(id)
                 .map(message -> {
+                    if (!currentUserId.equals(message.getReceiverId())) {
+                        return ResponseEntity.status(403).body("Forbidden");
+                    }
                     message.setRead(true);
                     return ResponseEntity.ok(messageRepository.save(message));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private Long getCurrentUserId(HttpServletRequest request) {
+        return (Long) request.getAttribute("userId");
     }
 }

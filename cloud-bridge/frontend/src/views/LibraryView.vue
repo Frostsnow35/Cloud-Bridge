@@ -155,7 +155,7 @@
               </div>
               <p class="card-desc">{{ truncateText(item.description, 100) }}</p>
               <div class="card-footer">
-                <el-tag size="small" effect="plain">{{ item.domain || '公共服务' }}</el-tag>
+                <el-tag size="small" effect="plain">{{ item.domain || '公共数据开发计划' }}</el-tag>
               </div>
             </div>
 

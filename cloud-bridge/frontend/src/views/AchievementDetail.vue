@@ -261,6 +261,13 @@ const handleContact = () => {
     router.push('/login')
     return
   }
+
+  if (!userStore.isDemandUser) {
+    ElMessage.warning('只有需求方账号可以联系成果负责人')
+    router.push('/profile')
+    return
+  }
+
   router.push(`/achievements/${achievement.value.id}/contact`)
 }
 

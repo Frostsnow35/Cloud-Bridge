@@ -88,8 +88,10 @@ import { useRouter } from 'vue-router'
 import { Search, Plus, ArrowRight } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '../stores/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 const searchQuery = ref('')
 const activeField = ref('All')
@@ -136,6 +138,18 @@ const filteredNeeds = computed(() => {
 })
 
 const navigateToPublish = () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后发布需求')
+    router.push({ path: '/login', query: { redirect: '/needs/publish' } })
+    return
+  }
+
+  if (!userStore.isDemandUser) {
+    ElMessage.warning('当前账号不属于需求方，请切换需求方账号后继续')
+    router.push('/profile')
+    return
+  }
+
   router.push('/needs/publish')
 }
 

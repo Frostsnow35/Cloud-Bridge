@@ -1,9 +1,10 @@
 import json
-import urllib.request
+import os
 import urllib.error
+import urllib.request
 
-API_BASE = "http://36.140.97.212:9004/v1"
-API_KEY = "sk-my-secret-key-888"
+API_BASE = os.getenv("AI_API_BASE", "http://36.140.97.212:9004/v1")
+API_KEY = os.getenv("AI_API_KEY", "")
 
 def list_models():
     url = f"{API_BASE}/models"

@@ -36,9 +36,18 @@ es:
 
 ai:
   api:
-    url: ${AI_API_URL:http://36.140.97.212:9004/v1/chat/completions}
-    key: ${AI_API_KEY:sk-my-secret-key-888}
-    model: ${AI_API_MODEL:Qwen2.5-72B}
+    # NVIDIA AI Foundation API (OpenAI兼容格式)
+    # 注册地址: https://build.nvidia.com/
+    # 免费额度: 每月10000次免费调用 (Free Tier)
+    # 免费模型列表 (带Free Points):
+    # - nvidia/nemotron-mini-4b-instruct (完全免费)
+    # - meta/llama3-8b-instruct (免费额度)
+    # - meta/llama3.1-8b-instruct (免费额度)
+    # - mistralai/mixtral-8x7b-instruct-v0.1 (免费额度)
+    url: ${AI_API_URL:https://api.nvidia.com/v1/chat/completions}
+    key: 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
+    model: ${AI_API_MODEL:nvidia/nemotron-mini-4b-instruct}
+    embedding-model: ${AI_EMBEDDING_MODEL:nvidia/nv-embedqa-e5-v5}
 
 fisco:
   network:

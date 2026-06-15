@@ -106,7 +106,7 @@ const router = createRouter({
       path: '/needs/publish',
       name: 'publish-need',
       component: PublishNeed,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, businessRole: 'demand' }
     },
     {
       path: '/achievements',
@@ -117,7 +117,7 @@ const router = createRouter({
       path: '/achievements/publish',
       name: 'publish-achievement',
       component: PublishAchievement,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, businessRole: 'achievement' }
     },
     {
       path: '/achievements/:id/contact',
@@ -162,6 +162,10 @@ router.beforeEach((to, from, next) => {
   } else if (to.meta.role && userStore.userRole !== to.meta.role) {
     // Check for role requirement
     next('/') // Redirect to home if role doesn't match
+  } else if (to.meta.businessRole === 'demand' && !userStore.isDemandUser) {
+    next('/profile')
+  } else if (to.meta.businessRole === 'achievement' && !userStore.isAchievementUser) {
+    next('/profile')
   } else {
     next()
   }

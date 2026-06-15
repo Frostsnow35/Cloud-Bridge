@@ -5,6 +5,7 @@ import com.cloudbridge.repository.AchievementRepository;
 import com.cloudbridge.service.rag.SearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import com.cloudbridge.util.DomainHierarchyUtil;
@@ -21,6 +22,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
+@Profile("!test")
 public class RAGDataSeeder implements CommandLineRunner {
 
     @Autowired
@@ -30,7 +32,16 @@ public class RAGDataSeeder implements CommandLineRunner {
     private AchievementRepository achievementRepository;
     
     @Autowired
+    private com.cloudbridge.service.ai.EmbeddingService embeddingService;
+
+    @Autowired
     private com.cloudbridge.repository.DemandRepository demandRepository;
+
+    @Autowired
+    private com.cloudbridge.repository.EvaluationMetricsRepository evaluationMetricsRepository;
+
+    @Autowired
+    private com.cloudbridge.service.ai.AIService aiService;
 
     @Override
     public void run(String... args) throws Exception {
@@ -52,6 +63,21 @@ public class RAGDataSeeder implements CommandLineRunner {
     private void seedAchievementsFromProjectCSV() {
         System.err.println("Attempting to seed Achievements from Project List CSV...");
         
+        // Dynamic Dimension Detection
+        int dimension = 768; // Default
+        try {
+            List<Double> dummy = embeddingService.getEmbedding("test");
+            if (!dummy.isEmpty()) {
+                dimension = dummy.size();
+                System.out.println("Detected Embedding Dimension: " + dimension);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to detect embedding dimension, using default 768");
+        }
+        
+        // Initialize Vector Index for Achievements
+        searchService.createVectorIndex("achievements", dimension); 
+
         Path path = findCsvFile("科技项目", "立项名单");
 
         try {
@@ -152,6 +178,48 @@ public class RAGDataSeeder implements CommandLineRunner {
                 achievement.setTags(tags);
                 
                 achievementRepository.save(achievement);
+                
+                // Trigger AI Analysis for Initial Metrics (Async or Sync)
+                // Remove mock data generation - Only process real data or leave for async processing
+                try {
+                    // Check if metrics already exist to avoid re-processing on restart
+                    if (!evaluationMetricsRepository.findByAchievementId(achievement.getId()).isPresent()) {
+                        System.out.println("Queuing analysis for achievement: " + achievement.getTitle());
+                        // In a real production system, this should be pushed to a Message Queue (RabbitMQ/Kafka)
+                        // For this implementation, we process a limited number synchronously to ensure the system has initial data,
+                        // and log a message for the rest.
+                        if (count < 10) { // Increased limit slightly
+                             com.cloudbridge.entity.EvaluationMetrics metrics = aiService.analyzeAchievement(achievement);
+                             evaluationMetricsRepository.save(metrics);
+                        } else {
+                             System.out.println("Skipping sync analysis for " + achievement.getId() + " to optimize startup time. Please trigger batch analysis API.");
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Metrics analysis failed: " + e.getMessage());
+                }
+
+                // Index to ES with Vector
+                try {
+                    Map<String, Object> doc = new HashMap<>();
+                    doc.put("id", achievement.getId());
+                    doc.put("title", achievement.getTitle());
+                    doc.put("description", achievement.getDescription());
+                    doc.put("field", achievement.getField());
+                    doc.put("tags", achievement.getTags());
+                    
+                    // Generate Embedding
+                    String textToEmbed = achievement.getTitle() + " " + achievement.getDescription();
+                    List<Double> vector = embeddingService.getEmbedding(textToEmbed);
+                    if (!vector.isEmpty()) {
+                        doc.put("embedding", vector);
+                    }
+                    
+                    searchService.indexDocument("achievements", String.valueOf(achievement.getId()), doc);
+                } catch (Exception e) {
+                    System.err.println("Failed to index achievement " + achievement.getId() + ": " + e.getMessage());
+                }
+
                 count++;
             }
             System.err.println("SUCCESS: Seeded " + count + " Achievements from Project List CSV.");

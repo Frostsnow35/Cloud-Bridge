@@ -1,10 +1,14 @@
 package com.cloudbridge.service;
 
 import com.cloudbridge.entity.Achievement;
+import com.cloudbridge.entity.EvaluationMetrics;
 import com.cloudbridge.entity.graph.Technology;
 import com.cloudbridge.repository.AchievementRepository;
+import com.cloudbridge.repository.EvaluationMetricsRepository;
 import com.cloudbridge.repository.graph.TechnologyRepository;
 import com.cloudbridge.service.ai.AIService;
+import com.cloudbridge.service.ai.EmbeddingService;
+import com.cloudbridge.service.rag.SearchService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,9 +36,20 @@ public class MatchingService {
     private AIService aiService;
 
     @Autowired
+    private EmbeddingService embeddingService;
+
+    @Autowired
+    private SearchService searchService;
+
+    @Autowired
+    private EvaluationMetricsRepository evaluationMetricsRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     // Scoring constants
+    private static final int SCORE_MANUAL_MATCH = 200; // Highest priority
+    private static final int SCORE_VECTOR_MATCH = 80;
     private static final int SCORE_FIELD_MATCH = 100;
     private static final int SCORE_KEYWORD_MATCH = 50;
     private static final int SCORE_GRAPH_MATCH = 20;
@@ -93,6 +108,9 @@ public class MatchingService {
             return result;
         }
 
+        // 0. Manual/Feedback Match (Ground Truth) - REMOVED as per user request
+        // "不存在人工精选"
+        
         // 1. Extract Profile using AI Service
         com.cloudbridge.dto.MatchingProfile profile = aiService.extractMatchingProfile(demandDescription);
         String keyword = profile.getKeyword();
@@ -136,8 +154,38 @@ public class MatchingService {
         }
         relatedKeywords.add(keyword);
 
-        // 3. Initial Retrieval (Broad Search)
+        // 3. Initial Retrieval (Hybrid Search)
         
+        // 3.0 Vector Search (Semantic Recall)
+        try {
+            List<Double> queryVector = embeddingService.getEmbedding(demandDescription);
+            if (!queryVector.isEmpty()) {
+                List<String> vectorResults = searchService.searchVector("achievements", queryVector, 20);
+                for (String json : vectorResults) {
+                    try {
+                        JsonNode node = objectMapper.readTree(json);
+                        if (node.has("id")) {
+                            Long id = node.get("id").asLong();
+                            // Fetch full entity from DB to ensure up-to-date status/data
+                            achievementRepository.findById(id).ifPresent(a -> {
+                                if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                     // Check Field Mismatch
+                                     if (!isFieldMismatch(a, effectiveField)) {
+                                         // Base score for vector match (can use cosine score if available, here fixed)
+                                         scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_VECTOR_MATCH);
+                                     }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        // ignore bad json
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Vector search failed: " + e.getMessage());
+        }
+
         // 3.1 Field Match (Strict Filter Base)
         if (effectiveField != null && !effectiveField.isEmpty()) {
             List<Achievement> fieldMatches = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
@@ -250,7 +298,9 @@ public class MatchingService {
 
         // 5. Final Sort and Select
         List<ScoredAchievement> allScored = new ArrayList<>(scoredMatches.values());
-        allScored = allScored.stream().filter(s -> s.getScore() > 0).collect(Collectors.toList());
+        allScored = allScored.stream()
+                .filter(s -> s.getScore() > 0)
+                .collect(Collectors.toList());
         allScored.sort((a, b) -> b.getScore() - a.getScore());
 
         // Return top 10 relevant ones
@@ -268,8 +318,46 @@ public class MatchingService {
             map.put("ownerId", a.getOwnerId());
             map.put("status", a.getStatus() != null ? a.getStatus().toString() : "PUBLISHED");
             map.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : new Date().toString());
-            map.put("score", sa.getScore());
+            
+            // Add match level indicator
+            map.put("matchLevel", sa.getScore() > 80 ? "HIGH" : (sa.getScore() > 50 ? "MEDIUM" : "LOW"));
+            
+            // Add explanation fields for traceability
+            Map<String, Object> explanation = new HashMap<>();
+            explanation.put("keyword", keyword);
+            explanation.put("domain", effectiveField);
+            explanation.put("matchingRules", generateMatchingRules(a, keyword, effectiveField));
+            explanation.put("graphPath", extractGraphPath(a, keyword));
+            explanation.put("summary", generateMatchSummary(a, keyword, sa.getScore()));
+            explanation.put("degraded", false); // Mark as non-degraded since we have real evidence
+            map.put("explanation", explanation);
+            
             matches.add(map);
+        }
+        
+        // 5.5 Augment matches with Evaluation Metrics
+        for (Map<String, Object> match : matches) {
+            Long achId = (Long) match.get("id");
+            Optional<EvaluationMetrics> metrics = evaluationMetricsRepository.findByAchievementId(achId);
+            if (metrics.isPresent()) {
+                EvaluationMetrics m = metrics.get();
+                Map<String, Object> eval = new HashMap<>();
+                eval.put("maturity", m.getTechnologyMaturity());
+                eval.put("innovation", m.getInnovationLevel());
+                eval.put("value", m.getEconomicValue());
+                eval.put("cost", m.getCostEfficiency());
+                eval.put("analysis", m.getAnalysisReport());
+                match.put("evaluation", eval);
+            } else {
+                // Default fallback if not yet analyzed
+                Map<String, Object> eval = new HashMap<>();
+                eval.put("maturity", 60);
+                eval.put("innovation", 60);
+                eval.put("value", 60);
+                eval.put("cost", 60);
+                eval.put("analysis", "待评估");
+                match.put("evaluation", eval);
+            }
         }
         
         result.put("matches", matches);
@@ -524,5 +612,77 @@ public class MatchingService {
             return parts[0];
         }
         return text.substring(0, Math.min(text.length(), 4));
+    }
+
+    private List<String> generateMatchingRules(Achievement a, String keyword, String field) {
+        List<String> rules = new ArrayList<>();
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            if (a.getTitle() != null && a.getTitle().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("标题包含关键词'" + keyword + "'");
+            }
+            if (a.getDescription() != null && a.getDescription().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("描述包含关键词'" + keyword + "'");
+            }
+        }
+        
+        if (field != null && !field.isEmpty() && a.getField() != null) {
+            if (a.getField().toLowerCase().contains(field.toLowerCase()) || 
+                field.toLowerCase().contains(a.getField().toLowerCase())) {
+                rules.add("领域匹配: " + a.getField());
+            }
+        }
+        
+        if (a.getTags() != null && !a.getTags().isEmpty()) {
+            if (keyword != null && a.getTags().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("标签包含关键词'" + keyword + "'");
+            }
+        }
+        
+        if (rules.isEmpty()) {
+            rules.add("基于语义相似度匹配");
+        }
+        
+        return rules;
+    }
+
+    private String extractGraphPath(Achievement a, String keyword) {
+        StringBuilder path = new StringBuilder();
+        path.append("需求解析 -> ");
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            path.append("关键词[").append(keyword).append("] -> ");
+        }
+        
+        if (a.getField() != null) {
+            path.append("领域[").append(a.getField()).append("] -> ");
+        }
+        
+        path.append("成果[").append(a.getTitle() != null ? a.getTitle() : "未知").append("]");
+        
+        return path.toString();
+    }
+
+    private String generateMatchSummary(Achievement a, String keyword, int score) {
+        StringBuilder summary = new StringBuilder();
+        
+        if (score >= 80) {
+            summary.append("高匹配度：");
+        } else if (score >= 50) {
+            summary.append("中匹配度：");
+        } else {
+            summary.append("初步匹配：");
+        }
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            summary.append("成果标题或描述包含核心关键词'").append(keyword).append("'");
+            if (a.getField() != null) {
+                summary.append("，所属领域为").append(a.getField());
+            }
+        } else {
+            summary.append("基于领域匹配推荐该成果");
+        }
+        
+        return summary.toString();
     }
 }

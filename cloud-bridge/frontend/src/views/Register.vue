@@ -14,10 +14,14 @@
         </el-form-item>
         <el-form-item label="角色" prop="role">
           <el-select v-model="form.role" placeholder="请选择角色" style="width: 100%">
-            <el-option label="科研人员" value="RESEARCHER" />
-            <el-option label="企业用户" value="ENTERPRISE" />
-            <el-option label="技术经理人" value="MANAGER" />
+            <el-option label="企业用户（需求方）" value="ENTERPRISE" />
+            <el-option label="专家用户（成果方）" value="EXPERT" />
+            <el-option label="科研人员（成果方）" value="RESEARCHER" />
+            <el-option label="技术经理人（成果方）" value="MANAGER" />
           </el-select>
+        </el-form-item>
+        <el-form-item>
+          <div class="role-tip">当前业务角色：{{ businessRoleLabel }}</div>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="onRegister" :loading="loading" class="w-100">注册</el-button>
@@ -31,10 +35,11 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { useUserStore } from '../stores/user'
+import { get_business_role_label } from '../utils/role'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -47,6 +52,8 @@ const form = reactive({
   email: '',
   role: 'RESEARCHER'
 })
+
+const businessRoleLabel = computed(() => get_business_role_label(form.role))
 
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
@@ -100,6 +107,11 @@ h2 {
   margin-top: 16px;
   font-size: 14px;
   color: var(--text-secondary);
+}
+.role-tip {
+  width: 100%;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 .login-link a {
   color: var(--el-color-primary);

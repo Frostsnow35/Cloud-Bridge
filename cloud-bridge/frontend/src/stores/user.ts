@@ -2,6 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import router from '../router'
+import {
+  get_business_role_label,
+  get_role_display_name,
+  is_achievement_side_role,
+  is_demand_side_role,
+  normalize_role
+} from '../utils/role'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
@@ -13,7 +20,11 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const isLoggedIn = computed(() => !!token.value)
-  const userRole = computed(() => user.value?.role || '')
+  const userRole = computed(() => normalize_role(user.value?.role))
+  const isDemandUser = computed(() => is_demand_side_role(userRole.value))
+  const isAchievementUser = computed(() => is_achievement_side_role(userRole.value))
+  const roleDisplayName = computed(() => get_role_display_name(userRole.value))
+  const businessRoleLabel = computed(() => get_business_role_label(userRole.value))
 
   async function login(credentials: any) {
     try {
@@ -99,6 +110,10 @@ export const useUserStore = defineStore('user', () => {
     token,
     isLoggedIn,
     userRole,
+    isDemandUser,
+    isAchievementUser,
+    roleDisplayName,
+    businessRoleLabel,
     login,
     register,
     logout,

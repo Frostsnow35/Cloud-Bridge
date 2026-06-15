@@ -112,13 +112,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { User, Position, Paperclip } from '@element-plus/icons-vue'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -154,11 +155,17 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString()
 }
 
+const syncTabFromRoute = () => {
+  const tab = route.query.tab
+  if (tab === 'received' || tab === 'sent') {
+    activeTab.value = tab
+  }
+}
+
 const fetchReceivedMessages = async (page = 1) => {
-  if (!userStore.user?.id) return
   loading.value = true
   try {
-    const res = await axios.get(`/api/messages/received/${userStore.user.id}`, {
+    const res = await axios.get('/api/messages/received', {
       params: { page: page - 1, size: pageSize.value }
     })
     receivedMessages.value = res.data.content
@@ -172,10 +179,9 @@ const fetchReceivedMessages = async (page = 1) => {
 }
 
 const fetchSentMessages = async () => {
-  if (!userStore.user?.id) return
   loading.value = true
   try {
-    const res = await axios.get(`/api/messages/sent/${userStore.user.id}`)
+    const res = await axios.get('/api/messages/sent')
     sentMessages.value = res.data
   } catch (error) {
     console.error('Failed to fetch sent messages:', error)
@@ -234,7 +240,6 @@ const submitReply = async () => {
       replyLoading.value = true
       try {
         await axios.post('/api/messages', {
-          senderId: userStore.user?.id,
           receiverId: replyForm.receiverId,
           content: replyForm.content,
           relatedEntityId: replyForm.relatedEntityId,
@@ -265,8 +270,13 @@ onMounted(() => {
     router.push('/login')
     return
   }
+  syncTabFromRoute()
   fetchReceivedMessages()
   fetchSentMessages()
+})
+
+watch(() => route.query.tab, () => {
+  syncTabFromRoute()
 })
 </script>
 

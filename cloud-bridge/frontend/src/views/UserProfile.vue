@@ -10,7 +10,10 @@
             </el-avatar>
             <div class="user-meta">
               <h2 class="username">{{ userStore.user?.username || '未登录用户' }}</h2>
-              <el-tag type="success" effect="dark" round>{{ userStore.user?.role || '普通用户' }}</el-tag>
+              <div class="role-tags">
+                <el-tag type="success" effect="dark" round>{{ userStore.roleDisplayName }}</el-tag>
+                <el-tag type="info" effect="plain" round>{{ userStore.businessRoleLabel }}</el-tag>
+              </div>
             </div>
           </div>
           
@@ -45,7 +48,7 @@
         <el-tabs v-model="activeTab" class="profile-tabs" type="border-card" @tab-click="handleTabClick">
           
           <!-- My Achievements (Expert) -->
-          <el-tab-pane label="我的成果" name="achievements" v-if="userStore.user?.role === 'EXPERT' || userStore.user?.role === 'RESEARCHER'">
+          <el-tab-pane label="我的成果" name="achievements" v-if="userStore.isAchievementUser">
             <div class="tab-content">
               <div class="tab-header">
                 <h3>已发布成果 ({{ myAchievements.length }})</h3>
@@ -95,7 +98,7 @@
           </el-tab-pane>
 
           <!-- My Demands (Enterprise) -->
-          <el-tab-pane label="我的需求" name="demands" v-if="userStore.user?.role === 'ENTERPRISE'">
+          <el-tab-pane label="我的需求" name="demands" v-if="userStore.isDemandUser">
              <div class="tab-content">
               <div class="tab-header">
                 <h3>已发布需求 ({{ myDemands.length }})</h3>
@@ -240,12 +243,13 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, watch } from 'vue'
 import { useUserStore } from '../stores/user'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+const route = useRoute()
 const router = useRouter()
 const activeTab = ref('achievements')
 const messageTab = ref('received')
@@ -279,6 +283,22 @@ const getStatusLabel = (status: string) => {
     'CLOSED': '已关闭'
   }
   return map[status] || status
+}
+
+const syncTabsFromRoute = () => {
+  const tab = route.query.tab
+  if (tab === 'achievements' || tab === 'demands' || tab === 'messages' || tab === 'favorites') {
+    activeTab.value = tab
+  } else if (userStore.user?.role === 'ENTERPRISE') {
+    activeTab.value = 'demands'
+  } else if (userStore.user?.role === 'EXPERT' || userStore.user?.role === 'RESEARCHER') {
+    activeTab.value = 'achievements'
+  }
+
+  const messageRouteTab = route.query.messageTab
+  if (messageRouteTab === 'received' || messageRouteTab === 'sent') {
+    messageTab.value = messageRouteTab
+  }
 }
 
 const fetchData = async () => {
@@ -315,10 +335,10 @@ const fetchData = async () => {
      loading.messages = true
      try {
         if (messageTab.value === 'received') {
-           const res = await axios.get(`/api/messages/received/${userStore.user.id}`)
+           const res = await axios.get('/api/messages/received')
            receivedMessages.value = res.data.content || res.data
         } else {
-           const res = await axios.get(`/api/messages/sent/${userStore.user.id}`)
+           const res = await axios.get('/api/messages/sent')
            sentMessages.value = res.data
         }
      } catch (e) {
@@ -468,15 +488,20 @@ onMounted(() => {
     router.push('/login')
     return
   }
-  
-  // Set default tab based on role
-  if (userStore.user?.role === 'ENTERPRISE') {
-     activeTab.value = 'demands'
-  } else if (userStore.user?.role === 'EXPERT' || userStore.user?.role === 'RESEARCHER') {
-     activeTab.value = 'achievements'
-  }
-  
+  syncTabsFromRoute()
   fetchData()
+})
+
+watch(() => route.query.tab, () => {
+  syncTabsFromRoute()
+  fetchData()
+})
+
+watch(() => route.query.messageTab, () => {
+  syncTabsFromRoute()
+  if (activeTab.value === 'messages') {
+    fetchData()
+  }
 })
 </script>
 
@@ -516,6 +541,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.role-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .username {
