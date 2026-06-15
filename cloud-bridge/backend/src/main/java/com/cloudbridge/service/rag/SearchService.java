@@ -57,20 +57,41 @@ public class SearchService {
         
         String body;
         if (dimension > 0) {
-            // Create with dense_vector mapping and full-text search fields
-            // Using escape for JSON string construction
+            // Create with dense_vector mapping and IK Chinese analyzer
+            // IK analyzer provides better Chinese text segmentation than 'standard'
             StringBuilder sb = new StringBuilder();
             sb.append("{");
-            sb.append("\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
+            // Index settings with analysis config
+            sb.append("\"settings\": {");
+            sb.append("\"number_of_shards\": 1,");
+            sb.append("\"number_of_replicas\": 0,");
+            // IK analyzer configuration (will gracefully fail if plugin not installed)
+            sb.append("\"analysis\": {");
+            sb.append("\"analyzer\": {");
+            sb.append("\"ik_analyzer\": {");
+            sb.append("\"type\": \"custom\",");
+            sb.append("\"tokenizer\": \"ik_max_word\",");
+            sb.append("\"filter\": [\"lowercase\"]");
+            sb.append("},");
+            sb.append("\"ik_search_analyzer\": {");
+            sb.append("\"type\": \"custom\",");
+            sb.append("\"tokenizer\": \"ik_smart\",");
+            sb.append("\"filter\": [\"lowercase\"]");
+            sb.append("}");
+            sb.append("}");
+            sb.append("},");
+            sb.append("\"refresh_interval\": \"1s\"");
+            sb.append("},");
+            // Mappings with IK analyzer
             sb.append("\"mappings\": {");
             sb.append("\"properties\": {");
-            // Full-text search fields
-            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
-            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            // Full-text search fields with IK analyzer
+            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
             sb.append("\"field\": {\"type\": \"keyword\"},");
             sb.append("\"tags\": {\"type\": \"keyword\"},");
             sb.append("\"id\": {\"type\": \"keyword\"},");
-            sb.append("\"institution\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"institution\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
             // Vector field
             sb.append("\"embedding\": {");
             sb.append("\"type\": \"dense_vector\",");
@@ -82,10 +103,89 @@ public class SearchService {
             sb.append("}");
             body = sb.toString();
         } else {
-            // Create basic index without vector
+            // Create basic index without vector, with IK analyzer
             StringBuilder sb = new StringBuilder();
             sb.append("{");
-            sb.append("\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
+            sb.append("\"settings\": {");
+            sb.append("\"number_of_shards\": 1,");
+            sb.append("\"number_of_replicas\": 0,");
+            // IK analyzer configuration
+            sb.append("\"analysis\": {");
+            sb.append("\"analyzer\": {");
+            sb.append("\"ik_analyzer\": {");
+            sb.append("\"type\": \"custom\",");
+            sb.append("\"tokenizer\": \"ik_max_word\",");
+            sb.append("\"filter\": [\"lowercase\"]");
+            sb.append("},");
+            sb.append("\"ik_search_analyzer\": {");
+            sb.append("\"type\": \"custom\",");
+            sb.append("\"tokenizer\": \"ik_smart\",");
+            sb.append("\"filter\": [\"lowercase\"]");
+            sb.append("}");
+            sb.append("}");
+            sb.append("},");
+            sb.append("\"refresh_interval\": \"1s\"");
+            sb.append("},");
+            sb.append("\"mappings\": {");
+            sb.append("\"properties\": {");
+            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"field\": {\"type\": \"keyword\"},");
+            sb.append("\"tags\": {\"type\": \"keyword\"},");
+            sb.append("\"name\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"content\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"provider\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"department\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"industry\": {\"type\": \"keyword\"},");
+            sb.append("\"institution\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"},");
+            sb.append("\"domain\": {\"type\": \"text\", \"analyzer\": \"ik_analyzer\", \"search_analyzer\": \"ik_search_analyzer\"}");
+            sb.append("}}");
+            sb.append("}");
+            body = sb.toString();
+        }
+
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        try {
+            restTemplate.put(url, entity);
+            System.out.println("Successfully created index " + indexName + " with IK analyzer (dim=" + dimension + ")");
+        } catch (Exception e) {
+            System.err.println("CRITICAL: Failed to create index " + indexName + ": " + e.getMessage());
+            // Fallback: try without IK analyzer (using standard)
+            System.out.println("Retrying with standard analyzer as fallback...");
+            createIndexFallback(indexName, dimension);
+        }
+    }
+    
+    // Fallback method if IK plugin is not installed
+    private void createIndexFallback(String indexName, int dimension) {
+        String url = esUrl + "/" + indexName;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        String body;
+        if (dimension > 0) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
+            sb.append("\"mappings\": {");
+            sb.append("\"properties\": {");
+            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"field\": {\"type\": \"keyword\"},");
+            sb.append("\"tags\": {\"type\": \"keyword\"},");
+            sb.append("\"id\": {\"type\": \"keyword\"},");
+            sb.append("\"institution\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"embedding\": {");
+            sb.append("\"type\": \"dense_vector\",");
+            sb.append("\"dims\": ").append(dimension).append(",");
+            sb.append("\"index\": true,");
+            sb.append("\"similarity\": \"cosine\"");
+            sb.append("}");
+            sb.append("}}");
+            sb.append("}");
+            body = sb.toString();
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
             sb.append("\"mappings\": {");
             sb.append("\"properties\": {");
             sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
@@ -103,14 +203,13 @@ public class SearchService {
             sb.append("}");
             body = sb.toString();
         }
-
+        
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         try {
             restTemplate.put(url, entity);
-            System.out.println("Successfully created index " + indexName + " with vector support (dim=" + dimension + ")");
+            System.out.println("Successfully created index " + indexName + " with standard analyzer (IK not installed)");
         } catch (Exception e) {
-            System.err.println("CRITICAL: Failed to create index " + indexName + ": " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("CRITICAL: Failed to create index even with fallback: " + e.getMessage());
         }
     }
 
@@ -167,14 +266,6 @@ public class SearchService {
         Map<String, Object> bodyMap = new java.util.HashMap<>();
         
         // Script Score Query for Cosine Similarity
-        // "script_score": {
-        //   "query": {"match_all": {}},
-        //   "script": {
-        //     "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
-        //     "params": {"query_vector": [...]}
-        //   }
-        // }
-        
         Map<String, Object> script = new java.util.HashMap<>();
         script.put("source", "cosineSimilarity(params.query_vector, 'embedding') + 1.0");
         script.put("params", Collections.singletonMap("query_vector", queryVector));
@@ -197,12 +288,12 @@ public class SearchService {
                 List<String> results = new ArrayList<>();
                 if (hits.isArray()) {
                     for (JsonNode hit : hits) {
-                        // Include score if needed, but for now just source
-                        // Maybe add ID to source?
                         JsonNode source = hit.path("_source");
-                        // We might want to inject the score into the result JSON
-                        // double score = hit.path("_score").asDouble();
-                        results.add(source.toString());
+                        // Include the score for RRF fusion
+                        double score = hit.path("_score").asDouble(0.0);
+                        String resultJson = source.toString();
+                        // Add score as metadata (prefix with score for parsing)
+                        results.add("{\"_score\":" + score + ",\"_source\":" + resultJson + "}");
                     }
                 }
                 return results;
@@ -212,6 +303,219 @@ public class SearchService {
              System.err.println("Vector search failed: " + e.getMessage());
         }
         return Collections.emptyList();
+    }
+    
+    /**
+     * Hybrid search combining vector search and keyword search using RRF fusion.
+     * RRF (Reciprocal Rank Fusion) formula: score = Σ 1/(k + rank)
+     * where k is a constant (typically 60) and rank is the position in the result list.
+     */
+    public List<String> searchHybrid(String indexName, List<Double> queryVector, String queryText, int limit) {
+        // Get results from both searches
+        List<String> vectorResults = searchVectorWithScore(indexName, queryVector, limit);
+        List<String> keywordResults = searchESWithScore(indexName, queryText, limit);
+        
+        // Apply RRF fusion
+        return rrfFusion(vectorResults, keywordResults, limit);
+    }
+    
+    /**
+     * Vector search that returns results with scores for RRF fusion.
+     */
+    private List<String> searchVectorWithScore(String indexName, List<Double> queryVector, int limit) {
+        String url = esUrl + "/" + indexName + "/_search";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> bodyMap = new java.util.HashMap<>();
+        
+        Map<String, Object> script = new java.util.HashMap<>();
+        script.put("source", "cosineSimilarity(params.query_vector, 'embedding') + 1.0");
+        script.put("params", Collections.singletonMap("query_vector", queryVector));
+        
+        Map<String, Object> scriptScore = new java.util.HashMap<>();
+        scriptScore.put("query", Collections.singletonMap("match_all", new java.util.HashMap<>()));
+        scriptScore.put("script", script);
+        
+        Map<String, Object> query = new java.util.HashMap<>();
+        query.put("script_score", scriptScore);
+        
+        bodyMap.put("query", query);
+        bodyMap.put("size", limit);
+
+        HttpEntity<Object> entity = new HttpEntity<>(bodyMap, headers);
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, entity, JsonNode.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode hits = response.getBody().path("hits").path("hits");
+                List<String> results = new ArrayList<>();
+                if (hits.isArray()) {
+                    int rank = 1;
+                    for (JsonNode hit : hits) {
+                        JsonNode source = hit.path("_source");
+                        String id = extractDocId(source);
+                        double score = hit.path("_score").asDouble(1.0);
+                        results.add(id + "::" + score + "::" + source.toString() + "::vector::" + rank);
+                        rank++;
+                    }
+                }
+                return results;
+            }
+        } catch (Exception e) {
+            System.err.println("Vector search failed: " + e.getMessage());
+        }
+        return Collections.emptyList();
+    }
+    
+    /**
+     * Keyword search that returns results with scores for RRF fusion.
+     */
+    private List<String> searchESWithScore(String indexName, String queryText, int limit) {
+        String url = esUrl + "/" + indexName + "/_search";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> bodyMap = new java.util.HashMap<>();
+        
+        if (queryText == null || queryText.trim().isEmpty()) {
+            Map<String, Object> matchAll = new java.util.HashMap<>();
+            bodyMap.put("query", Collections.singletonMap("match_all", matchAll));
+        } else {
+            Map<String, Object> multiMatch = new java.util.HashMap<>();
+            multiMatch.put("query", queryText);
+            multiMatch.put("fields", new String[]{
+                "title^2", "name^2", "description", "field", "tags", 
+                "provider", "domain", "institution"
+            });
+            multiMatch.put("type", "best_fields");
+            multiMatch.put("fuzziness", "AUTO");
+            
+            Map<String, Object> query = new java.util.HashMap<>();
+            query.put("multi_match", multiMatch);
+            bodyMap.put("query", query);
+        }
+
+        bodyMap.put("size", limit);
+
+        HttpEntity<Object> entity = new HttpEntity<>(bodyMap, headers);
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, entity, JsonNode.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode hits = response.getBody().path("hits").path("hits");
+                List<String> results = new ArrayList<>();
+                if (hits.isArray()) {
+                    int rank = 1;
+                    for (JsonNode hit : hits) {
+                        JsonNode source = hit.path("_source");
+                        String id = extractDocId(source);
+                        double score = hit.path("_score").asDouble(1.0);
+                        results.add(id + "::" + score + "::" + source.toString() + "::keyword::" + rank);
+                        rank++;
+                    }
+                }
+                return results;
+            }
+        } catch (Exception e) {
+            System.err.println("Keyword search failed: " + e.getMessage());
+        }
+        return Collections.emptyList();
+    }
+    
+    /**
+     * Extract document ID from source JSON.
+     */
+    private String extractDocId(JsonNode source) {
+        if (source.has("id")) {
+            return source.get("id").asText();
+        }
+        // If no id field, use hash of the source as identifier
+        return String.valueOf(source.toString().hashCode());
+    }
+    
+    /**
+     * RRF (Reciprocal Rank Fusion) algorithm implementation.
+     * Formula: RRF(score) = Σ 1/(k + rank)
+     * @param vectorResults Results from vector search (format: "id::es_score::source::type::rank")
+     * @param keywordResults Results from keyword search (format: "id::es_score::source::type::rank")
+     * @param limit Maximum number of results to return
+     * @return Fused and ranked results as JSON strings
+     */
+    private List<String> rrfFusion(List<String> vectorResults, List<String> keywordResults, int limit) {
+        // RRF constant (typical value)
+        int k = 60;
+        
+        // Map to store fused scores by document ID
+        Map<String, Double> fusedScores = new java.util.HashMap<>();
+        Map<String, String> docSources = new java.util.HashMap<>();
+        Map<String, Double> esScores = new java.util.HashMap<>();
+        Map<String, Boolean> hasVector = new java.util.HashMap<>();
+        Map<String, Boolean> hasKeyword = new java.util.HashMap<>();
+        
+        // Process vector results
+        for (String result : vectorResults) {
+            String[] parts = result.split("::");
+            if (parts.length >= 5) {
+                String id = parts[0];
+                double esScore = Double.parseDouble(parts[1]);
+                String source = parts[2];
+                int rank = Integer.parseInt(parts[4]);
+                
+                double rrfScore = 1.0 / (k + rank);
+                fusedScores.merge(id, rrfScore, Double::sum);
+                docSources.put(id, source);
+                esScores.put(id, esScore);
+                hasVector.put(id, true);
+            }
+        }
+        
+        // Process keyword results
+        for (String result : keywordResults) {
+            String[] parts = result.split("::");
+            if (parts.length >= 5) {
+                String id = parts[0];
+                double esScore = Double.parseDouble(parts[1]);
+                String source = parts[2];
+                int rank = Integer.parseInt(parts[4]);
+                
+                double rrfScore = 1.0 / (k + rank);
+                fusedScores.merge(id, rrfScore, Double::sum);
+                docSources.put(id, source);
+                // Use max of both scores
+                if (!esScores.containsKey(id) || esScore > esScores.get(id)) {
+                    esScores.put(id, esScore);
+                }
+                hasKeyword.put(id, true);
+            }
+        }
+        
+        // Sort by fused score
+        List<Map.Entry<String, Double>> sortedEntries = new ArrayList<>(fusedScores.entrySet());
+        sortedEntries.sort((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()));
+        
+        // Build final results
+        List<String> fusedResults = new ArrayList<>();
+        int count = 0;
+        for (Map.Entry<String, Double> entry : sortedEntries) {
+            if (count >= limit) break;
+            
+            String id = entry.getKey();
+            String source = docSources.get(id);
+            double fusedScore = entry.getValue();
+            boolean isVector = hasVector.getOrDefault(id, false);
+            boolean isKeyword = hasKeyword.getOrDefault(id, false);
+            
+            // Create result JSON with metadata
+            String resultJson = String.format(
+                "{\"_source\":%s,\"_score\":%.4f,\"_fused_score\":%.4f,\"_source_type\":\"%s\",\"_has_vector\":%s,\"_has_keyword\":%s}",
+                source, esScores.getOrDefault(id, 0.0), fusedScore,
+                isVector && isKeyword ? "hybrid" : (isVector ? "vector" : "keyword"),
+                isVector, isKeyword
+            );
+            fusedResults.add(resultJson);
+            count++;
+        }
+        
+        return fusedResults;
     }
 
     private List<String> searchES(String indexName, String queryText) {

@@ -27,9 +27,14 @@ services:
       - AI_API_KEY=${AI_API_KEY:-sk-your-key}
       - AI_API_MODEL=${AI_API_MODEL:-deepseek-ai/DeepSeek-R1-0528-Qwen3-8B}
     depends_on:
-      - mysql
-      - redis
-      - neo4j
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     networks:
       - cloud-bridge-net
 
@@ -58,6 +63,12 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - cloud-bridge-net
 
@@ -68,6 +79,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     networks:
       - cloud-bridge-net
 
@@ -81,21 +97,42 @@ services:
       - "7687:7687"
     volumes:
       - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p password 'RETURN 1' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - cloud-bridge-net
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: cloud-bridge-es
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - cluster.name=cloud-bridge-cluster
+      # Disk watermark settings for low disk space
+      - cluster.routing.allocation.disk.watermark.low=1gb
+      - cluster.routing.allocation.disk.watermark.high=500mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=200mb
+      # Query cache settings
+      - indices.queries.cache.size=10%
+      - indices.request.cache.enabled=true
     ports:
       - "9200:9200"
       - "9300:9300"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+      - es_logs:/usr/share/elasticsearch/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - cloud-bridge-net
 
@@ -104,6 +141,7 @@ volumes:
   redis_data:
   neo4j_data:
   es_data:
+  es_logs:
   uploads_data:
 
 networks:

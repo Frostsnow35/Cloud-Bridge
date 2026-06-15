@@ -91,6 +91,62 @@ public class MatchingService {
             return score;
         }
     }
+    
+    /**
+     * Fallback method when hybrid search fails.
+     * Performs separate vector and keyword searches.
+     */
+    private void fallbackToSeparateSearch(String demandDescription, Map<Long, ScoredAchievement> scoredMatches, String effectiveField) {
+        try {
+            List<Double> queryVector = embeddingService.getEmbedding(demandDescription);
+            if (!queryVector.isEmpty()) {
+                List<String> vectorResults = searchService.searchVector("achievements", queryVector, 20);
+                for (String json : vectorResults) {
+                    try {
+                        JsonNode node = objectMapper.readTree(json);
+                        if (node.has("id")) {
+                            Long id = node.get("id").asLong();
+                            achievementRepository.findById(id).ifPresent(a -> {
+                                if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                    if (!isFieldMismatch(a, effectiveField)) {
+                                        scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_VECTOR_MATCH);
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        // ignore bad json
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Fallback vector search failed: " + e.getMessage());
+        }
+        
+        // Also try keyword search as fallback
+        try {
+            List<String> keywordResults = searchService.search("achievements", demandDescription);
+            for (String json : keywordResults) {
+                try {
+                    JsonNode node = objectMapper.readTree(json);
+                    if (node.has("id")) {
+                        Long id = node.get("id").asLong();
+                        achievementRepository.findById(id).ifPresent(a -> {
+                            if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                if (!isFieldMismatch(a, effectiveField)) {
+                                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+                                }
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    // ignore bad json
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Fallback keyword search failed: " + e.getMessage());
+        }
+    }
 
     // Overload for backward compatibility
     public Map<String, Object> match(String demandDescription) {
@@ -154,26 +210,50 @@ public class MatchingService {
         }
         relatedKeywords.add(keyword);
 
-        // 3. Initial Retrieval (Hybrid Search)
-        
-        // 3.0 Vector Search (Semantic Recall)
+        // 3. Initial Retrieval (Hybrid Search with RRF Fusion)
+
+        // 3.0 Hybrid Search: Vector + Keyword combined with RRF
         try {
             List<Double> queryVector = embeddingService.getEmbedding(demandDescription);
             if (!queryVector.isEmpty()) {
-                List<String> vectorResults = searchService.searchVector("achievements", queryVector, 20);
-                for (String json : vectorResults) {
+                // Use hybrid search combining vector and keyword search
+                List<String> hybridResults = searchService.searchHybrid("achievements", queryVector, demandDescription, 30);
+                
+                for (String resultJson : hybridResults) {
                     try {
-                        JsonNode node = objectMapper.readTree(json);
-                        if (node.has("id")) {
-                            Long id = node.get("id").asLong();
+                        JsonNode resultNode = objectMapper.readTree(resultJson);
+                        JsonNode sourceNode = resultNode.path("_source");
+                        
+                        if (sourceNode.has("id")) {
+                            Long id = sourceNode.get("id").asLong();
+                            String sourceType = resultNode.has("_source_type") ? resultNode.get("_source_type").asText() : "unknown";
+                            
                             // Fetch full entity from DB to ensure up-to-date status/data
                             achievementRepository.findById(id).ifPresent(a -> {
                                 if (a.getStatus() == Achievement.Status.PUBLISHED) {
-                                     // Check Field Mismatch
-                                     if (!isFieldMismatch(a, effectiveField)) {
-                                         // Base score for vector match (can use cosine score if available, here fixed)
-                                         scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_VECTOR_MATCH);
-                                     }
+                                    // Check Field Mismatch
+                                    if (!isFieldMismatch(a, effectiveField)) {
+                                        int baseScore = 0;
+                                        double fusedScore = resultNode.has("_fused_score") ? resultNode.get("_fused_score").asDouble() : 0;
+                                        
+                                        // Score based on source type and fused score
+                                        if ("hybrid".equals(sourceType)) {
+                                            // Both vector and keyword matched - highest score
+                                            baseScore = SCORE_VECTOR_MATCH + SCORE_KEYWORD_MATCH;
+                                        } else if ("vector".equals(sourceType)) {
+                                            // Only vector matched
+                                            baseScore = SCORE_VECTOR_MATCH;
+                                        } else if ("keyword".equals(sourceType)) {
+                                            // Only keyword matched
+                                            baseScore = SCORE_KEYWORD_MATCH;
+                                        }
+                                        
+                                        // Bonus score based on RRF fused score (top results get higher bonus)
+                                        int bonusScore = (int)(fusedScore * 50);
+                                        baseScore += bonusScore;
+                                        
+                                        scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(baseScore);
+                                    }
                                 }
                             });
                         }
@@ -183,24 +263,34 @@ public class MatchingService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Vector search failed: " + e.getMessage());
+            System.err.println("Hybrid search failed: " + e.getMessage());
+            // Fallback to separate searches if hybrid fails
+            fallbackToSeparateSearch(demandDescription, scoredMatches, effectiveField);
         }
 
-        // 3.1 Field Match (Strict Filter Base)
+        // 3.1 Field Match (Strict Filter Base) - Keep for field-based filtering
         if (effectiveField != null && !effectiveField.isEmpty()) {
             List<Achievement> fieldMatches = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
             for (Achievement a : fieldMatches) {
-                scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_FIELD_MATCH);
+                // Only add field match score if not already highly scored (avoid over-counting)
+                ScoredAchievement existing = scoredMatches.get(a.getId());
+                if (existing == null || existing.getScore() < SCORE_FIELD_MATCH) {
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_FIELD_MATCH);
+                }
             }
         }
         
-        // 3.2 Main Keyword Match & HIERARCHY EXPANSION
+        // 3.2 Main Keyword Match & HIERARCHY EXPANSION - Enhanced with field boosting
         if (keyword != null && !keyword.isEmpty()) {
             // A. Search by keyword itself
             List<Achievement> keywordMatches = achievementRepository.findPublishedByKeyword(keyword);
             for (Achievement a : keywordMatches) {
                 if (isFieldMismatch(a, effectiveField)) continue;
-                scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+                // Avoid double counting - only add if not already scored by hybrid search
+                ScoredAchievement existing = scoredMatches.get(a.getId());
+                if (existing == null || existing.getScore() < SCORE_KEYWORD_MATCH) {
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+                }
             }
             
             // B. Search by hierarchy children (Expansion)
