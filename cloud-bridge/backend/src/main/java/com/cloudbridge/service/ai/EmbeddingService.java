@@ -76,13 +76,17 @@ public class EmbeddingService {
         return Collections.emptyList();
     }
     
+    // Mock fallback dimension - should match actual embedding model output
+    // nvidia/nv-embedqa-e5-v5: 1024 dimensions
+    // BAAI/bge-large-zh-v1.5: 1024 dimensions
+    private static final int MOCK_EMBEDDING_DIM = 1024;
+    
     // Simple deterministic hash-based vector for fallback/demo
     private List<Double> generateMockEmbedding(String text) {
         List<Double> vector = new ArrayList<>();
-        int dim = 768; // Standard dimension
         long seed = text.hashCode();
         java.util.Random rng = new java.util.Random(seed);
-        for (int i = 0; i < dim; i++) {
+        for (int i = 0; i < MOCK_EMBEDDING_DIM; i++) {
             vector.add(rng.nextGaussian());
         }
         // Normalize
@@ -90,7 +94,7 @@ public class EmbeddingService {
         for (Double v : vector) norm += v * v;
         norm = Math.sqrt(norm);
         if (norm > 0) {
-             for (int i = 0; i < dim; i++) {
+             for (int i = 0; i < MOCK_EMBEDDING_DIM; i++) {
                  vector.set(i, vector.get(i) / norm);
              }
         }

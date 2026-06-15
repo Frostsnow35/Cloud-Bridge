@@ -64,7 +64,8 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("Attempting to seed Achievements from Project List CSV...");
         
         // Dynamic Dimension Detection
-        int dimension = 768; // Default
+        // Default: 1024 (matches nvidia/nv-embedqa-e5-v5 and BAAI/bge-large-zh-v1.5)
+        int dimension = 1024;
         try {
             List<Double> dummy = embeddingService.getEmbedding("test");
             if (!dummy.isEmpty()) {
@@ -101,7 +102,9 @@ public class RAGDataSeeder implements CommandLineRunner {
             }
 
             // ALWAYS Clear existing achievements ONLY if we successfully read the file
-            System.err.println("Clearing existing achievements...");
+            // MUST delete child records first to avoid FK constraint violation
+            System.err.println("Clearing existing data (metrics -> achievements)...");
+            evaluationMetricsRepository.deleteAll();
             achievementRepository.deleteAll();
 
             // Header: 承担单位,级别,序号,项目名称,项目批次,支持方向

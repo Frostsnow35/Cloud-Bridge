@@ -45,38 +45,72 @@ public class SearchService {
         String url = esUrl + "/" + indexName;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        
         // Check if exists
         try {
             restTemplate.headForHeaders(url);
+            System.out.println("Index " + indexName + " already exists, skipping creation.");
             return; // Exists
         } catch (Exception e) {
-            // Not exists, create
+            System.out.println("Index " + indexName + " does not exist, creating...");
         }
         
         String body;
         if (dimension > 0) {
-            // Create with dense_vector mapping
-            body = "{" +
-                   "  \"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}," +
-                   "  \"mappings\": {" +
-                   "    \"properties\": {" +
-                   "      \"embedding\": {" +
-                   "        \"type\": \"dense_vector\"," +
-                   "        \"dims\": " + dimension +
-                   "      }" +
-                   "    }" +
-                   "  }" +
-                   "}";
+            // Create with dense_vector mapping and full-text search fields
+            // Using escape for JSON string construction
+            StringBuilder sb = new StringBuilder();
+            sb.append("{");
+            sb.append("\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
+            sb.append("\"mappings\": {");
+            sb.append("\"properties\": {");
+            // Full-text search fields
+            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"field\": {\"type\": \"keyword\"},");
+            sb.append("\"tags\": {\"type\": \"keyword\"},");
+            sb.append("\"id\": {\"type\": \"keyword\"},");
+            sb.append("\"institution\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            // Vector field
+            sb.append("\"embedding\": {");
+            sb.append("\"type\": \"dense_vector\",");
+            sb.append("\"dims\": ").append(dimension).append(",");
+            sb.append("\"index\": true,");
+            sb.append("\"similarity\": \"cosine\"");
+            sb.append("}");
+            sb.append("}}");
+            sb.append("}");
+            body = sb.toString();
         } else {
-            body = "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0}}";
+            // Create basic index without vector
+            StringBuilder sb = new StringBuilder();
+            sb.append("{");
+            sb.append("\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},");
+            sb.append("\"mappings\": {");
+            sb.append("\"properties\": {");
+            sb.append("\"title\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"description\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"field\": {\"type\": \"keyword\"},");
+            sb.append("\"tags\": {\"type\": \"keyword\"},");
+            sb.append("\"name\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"content\": {\"type\": \"text\", \"analyzer\": \"standard\"},");
+            sb.append("\"provider\": {\"type\": \"text\"},");
+            sb.append("\"department\": {\"type\": \"text\"},");
+            sb.append("\"industry\": {\"type\": \"keyword\"},");
+            sb.append("\"institution\": {\"type\": \"text\"},");
+            sb.append("\"domain\": {\"type\": \"text\", \"analyzer\": \"standard\"}");
+            sb.append("}}");
+            sb.append("}");
+            body = sb.toString();
         }
 
         HttpEntity<String> entity = new HttpEntity<>(body, headers);
         try {
             restTemplate.put(url, entity);
-            System.out.println("Created index " + indexName + " with vector support (dim=" + dimension + ")");
+            System.out.println("Successfully created index " + indexName + " with vector support (dim=" + dimension + ")");
         } catch (Exception e) {
-            System.err.println("Failed to create index " + indexName + ": " + e.getMessage());
+            System.err.println("CRITICAL: Failed to create index " + indexName + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -192,13 +226,16 @@ public class SearchService {
             bodyMap.put("query", Collections.singletonMap("match_all", matchAll));
         } else {
             // Construct query using Map to avoid JSON injection
+            // Fields are based on actual data structures from RAGDataSeeder:
+            // - achievements: title, description, field, tags, institution
+            // - public_platforms: name, description, provider, domain
             Map<String, Object> multiMatch = new java.util.HashMap<>();
             multiMatch.put("query", queryText);
             multiMatch.put("fields", new String[]{
-                "title", "content", "name", "description", "specs", 
-                "abstractText", "inventor", "assignee", "patentNumber", 
-                "industry", "products", "field", "provider", "department"
+                "title^2", "name^2", "description", "field", "tags", 
+                "provider", "domain", "institution"
             });
+            // ^2 boosts title/name relevance
 
             Map<String, Object> query = new java.util.HashMap<>();
             query.put("multi_match", multiMatch);
