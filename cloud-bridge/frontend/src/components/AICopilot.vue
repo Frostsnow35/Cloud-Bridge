@@ -15,56 +15,51 @@
     <transition name="slide-up">
       <div v-if="isOpen" class="chat-window">
         <div class="chat-header">
-          <span>AI 智能助手</span>
-          <el-icon class="close-btn" @click="toggleChat"><Close /></el-icon>
+          <div class="header-left">
+            <span class="header-title">云转桥 Agent</span>
+            <el-tag v-if="agentStatus" size="small" type="warning" class="status-tag">
+              {{ agentStatus }}
+            </el-tag>
+          </div>
+          <div class="header-actions">
+            <el-button link type="warning" size="small" @click="resetChat" :disabled="isLoading">
+              重新开始
+            </el-button>
+            <el-icon class="close-btn" @click="toggleChat"><Close /></el-icon>
+          </div>
         </div>
         <div class="chat-body" ref="chatBody">
           <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
             <div class="avatar" v-if="msg.role === 'ai'">
               <el-icon><Cpu /></el-icon>
             </div>
-            <div class="content">{{ msg.text }}</div>
+            <div class="content" v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.text)"></div>
+            <div class="content" v-else>{{ msg.text }}</div>
           </div>
           <div v-if="isLoading" class="message ai">
             <div class="avatar"><el-icon><Cpu /></el-icon></div>
-            <div class="content loading">
-              <span></span><span></span><span></span>
+            <div class="content streaming">
+              <span v-if="streamBuffer">{{ streamBuffer }}</span>
+              <span class="cursor-blink">|</span>
             </div>
           </div>
         </div>
         <div class="chat-footer">
           <el-input
             v-model="input"
-            placeholder="请输入您的问题..."
+            placeholder="描述您的技术需求，Agent 帮您精准对接..."
             @keyup.enter="sendMessage"
+            :disabled="isLoading"
           >
             <template #append>
-              <el-button @click="sendMessage">发送</el-button>
+              <el-button @click="sendMessage" :disabled="isLoading">
+                {{ isLoading ? '思考中' : '发送' }}
+              </el-button>
             </template>
           </el-input>
         </div>
       </div>
     </transition>
-
-    <!-- Feedback Dialog -->
-    <el-dialog v-model="showFeedbackDialog" title="问题反馈" width="400px" append-to-body>
-      <el-form :model="feedbackForm">
-        <el-form-item label="反馈内容">
-          <el-input 
-            v-model="feedbackForm.content" 
-            type="textarea" 
-            :rows="4"
-            placeholder="请描述您遇到的问题或建议..."
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showFeedbackDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitFeedback">提交</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -78,100 +73,164 @@ const router = useRouter()
 const isOpen = ref(false)
 const input = ref('')
 const isLoading = ref(false)
+const streamBuffer = ref('')
+const agentStatus = ref('')
 const chatBody = ref<HTMLElement | null>(null)
 
-// Feedback state
-const showFeedbackDialog = ref(false)
-const feedbackForm = ref({ content: '' })
+// 会话ID，用于多轮对话记忆
+const sessionId = ref('')
 
 interface Message {
   role: 'user' | 'ai';
   text: string;
 }
 
+const welcomeMsg = '你好！我是云转桥的智能供需对接 Agent。我可以帮你：\n\n- **需求澄清**：多轮追问帮你明确技术需求\n- **智能匹配**：搜索最匹配的科技成果\n- **全链路方案**：整合政策、资金、专家、设备等资源\n\n请描述你的技术需求，我们开始吧！'
+
 const messages = ref<Message[]>([
-  { role: 'ai', text: '你好！我是 Cloud Bridge 的智能助手。我可以帮您寻找技术成果、发布需求，或者解答平台使用问题。请问有什么可以帮您？' }
+  { role: 'ai', text: welcomeMsg }
 ])
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value
 }
 
-const sendMessage = async () => {
-  if (!input.value.trim()) return
+const resetChat = async () => {
+  if (sessionId.value) {
+    try {
+      await fetch('/api/ai/agent/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionId.value })
+      })
+    } catch (e) {
+      // ignore
+    }
+  }
+  sessionId.value = ''
+  messages.value = [{ role: 'ai', text: welcomeMsg }]
+  streamBuffer.value = ''
+  agentStatus.value = ''
+  isLoading.value = false
+  ElMessage.success('对话已重置')
+}
 
-  // Add User Message
-  messages.value.push({ role: 'user', text: input.value })
-  const userMsg = input.value
+const sendMessage = async () => {
+  if (!input.value.trim() || isLoading.value) return
+
+  const userMsg = input.value.trim()
+  messages.value.push({ role: 'user', text: userMsg })
   input.value = ''
   isLoading.value = true
+  streamBuffer.value = ''
+  agentStatus.value = '思考中…'
   scrollToBottom()
 
+  // 添加临时 AI 消息用于流式填充
+  const aiMsgIndex = messages.value.length
+  messages.value.push({ role: 'ai', text: '' })
+
   try {
-    const res = await fetch('/api/ai/chat', {
+    const res = await fetch('/api/ai/agent/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMsg })
+      body: JSON.stringify({
+        sessionId: sessionId.value || undefined,
+        message: userMsg
+      })
     })
 
-    let data
-    const text = await res.text()
-    try {
-      data = JSON.parse(text)
-    } catch (e) {
-      // Fallback if response is not JSON
-      console.warn('AI response is not JSON:', text)
-      data = { 
-        intent: 'CHAT', 
-        reply: text || '抱歉，服务暂时不可用。',
-        action: null
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`)
+    }
+
+    const reader = res.body?.getReader()
+    if (!reader) {
+      throw new Error('No response body')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          const eventType = line.substring(6).trim()
+          agentStatus.value = getStatusForEvent(eventType)
+        } else if (line.startsWith('data:')) {
+          const data = line.substring(5).trim()
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.sessionId && !sessionId.value) {
+              sessionId.value = parsed.sessionId
+            }
+          } catch (e) {
+            // 普通 token 文本
+            streamBuffer.value += data
+            messages.value[aiMsgIndex].text += data
+          }
+        }
       }
-    }
-    
-    // Check if the backend returns a simple string reply or a complex object
-    if (typeof data === 'string') {
-        data = { reply: data }
+      scrollToBottom()
     }
 
-    messages.value.push({ role: 'ai', text: data.reply || '抱歉，我没有理解您的意思。' })
-    
-    if (data.action) {
-      handleAction(data.action)
-    }
+    // 流结束
+    agentStatus.value = ''
+    streamBuffer.value = ''
 
-  } catch (e) {
-    console.error('Chat error:', e)
-    messages.value.push({ role: 'ai', text: '抱歉，连接服务器失败，请稍后再试。' })
+  } catch (e: any) {
+    console.error('Agent chat error:', e)
+    messages.value[aiMsgIndex].text = '抱歉，Agent 服务暂时不可用，请稍后再试。'
+    agentStatus.value = ''
+    streamBuffer.value = ''
   } finally {
     isLoading.value = false
     scrollToBottom()
   }
 }
 
-const handleAction = (action: any) => {
-  console.log('Executing action:', action)
-  if (action.type === 'NAVIGATE') {
-    if (action.payload && action.payload.path) {
-      router.push(action.payload)
-    }
-  } else if (action.type === 'OPEN_FEEDBACK_FORM') {
-    showFeedbackDialog.value = true
+const getStatusForEvent = (event: string): string => {
+  switch (event) {
+    case 'session': return '已连接'
+    case 'token': return '生成中…'
+    case 'done': return ''
+    case 'error': return '出错了'
+    default: return ''
   }
 }
 
-const submitFeedback = async () => {
-  if (!feedbackForm.value.content) {
-    ElMessage.warning('请输入反馈内容')
-    return
-  }
-  
-  // Mock submission
-  // In real app: await fetch('/api/feedback', ...)
-  setTimeout(() => {
-    ElMessage.success('反馈已提交，感谢您的建议！')
-    showFeedbackDialog.value = false
-    feedbackForm.value.content = ''
-  }, 500)
+/**
+ * 简易 Markdown 渲染（支持粗体、标题、列表、分段）
+ */
+const renderMarkdown = (text: string): string => {
+  if (!text) return ''
+  let html = text
+    // 转义 HTML
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // 粗体 **text**
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 标题 ## text
+    .replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')
+    // 无序列表 - item
+    .replace(/^- (.+)$/gm, '<li class="md-li">$1</li>')
+    // 有序列表 1. item
+    .replace(/^\d+\.\s+(.+)$/gm, '<li class="md-li">$1</li>')
+    // 换行
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>')
+
+  return html
 }
 
 const scrollToBottom = () => {
@@ -211,8 +270,8 @@ const scrollToBottom = () => {
   position: absolute;
   bottom: 80px;
   right: 0;
-  width: 350px;
-  height: 500px;
+  width: 400px;
+  height: 550px;
   background: var(--bg-card);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -224,18 +283,39 @@ const scrollToBottom = () => {
 
 .chat-header {
   background: var(--bg-secondary);
-  color: var(--gold-primary);
-  padding: 15px;
-  font-weight: bold;
+  padding: 12px 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title {
+  color: var(--gold-primary);
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.status-tag {
+  font-size: 11px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .close-btn {
   cursor: pointer;
   color: var(--text-secondary);
+  font-size: 18px;
 }
 
 .close-btn:hover {
@@ -290,18 +370,68 @@ const scrollToBottom = () => {
 .content {
   padding: 10px 14px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   max-width: 75%;
   word-wrap: break-word;
 }
 
+/* 流式输出光标 */
+.streaming {
+  min-width: 40px;
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+  color: var(--gold-primary);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Markdown 渲染样式 */
+.content :deep(.md-h1) {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--gold-primary);
+  margin: 8px 0 4px;
+}
+
+.content :deep(.md-h2) {
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--gold-primary);
+  margin: 6px 0 3px;
+}
+
+.content :deep(.md-h3) {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 4px 0 2px;
+}
+
+.content :deep(.md-li) {
+  margin-left: 8px;
+  list-style: disc inside;
+}
+
+.content :deep(strong) {
+  color: var(--gold-primary);
+}
+
+.content :deep(br) {
+  display: block;
+  content: '';
+  margin-top: 4px;
+}
+
 .chat-footer {
-  padding: 15px;
+  padding: 12px 15px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-card);
 }
 
-/* Input Override */
 .chat-footer :deep(.el-input__wrapper) {
   background-color: var(--bg-primary);
   box-shadow: none;
@@ -317,24 +447,6 @@ const scrollToBottom = () => {
   border: 1px solid var(--border-color);
   border-left: none;
   color: var(--gold-primary);
-}
-
-.loading span {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background: var(--gold-primary);
-  border-radius: 50%;
-  margin: 0 2px;
-  animation: bounce 1.4s infinite ease-in-out both;
-}
-
-.loading span:nth-child(1) { animation-delay: -0.32s; }
-.loading span:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes bounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
 }
 
 .slide-up-enter-active,
