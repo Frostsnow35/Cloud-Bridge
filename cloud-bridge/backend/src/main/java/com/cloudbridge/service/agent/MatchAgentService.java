@@ -4,10 +4,9 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.TokenStream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -45,71 +44,56 @@ public class MatchAgentService {
     private int maxTokens;
 
     @Autowired
-    private MatchAgentTools agentTools;
+    @Qualifier("agentCoreTools")
+    private Object agentTools;
 
-    // 流式模型（用于 TokenStream 响应）
-    private OpenAiStreamingChatModel streamingModel;
-
-    // 非流式模型（用于记忆管理的标准模型，LangChain4j需要它来处理工具调用）
     private ChatLanguageModel chatModel;
 
-    // 按 sessionId 隔离对话记忆，每个会话最多保留20条消息
     private final Map<String, ChatMemory> sessionMemories = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
-        // 构建流式模型
-        streamingModel = OpenAiStreamingChatModel.builder()
-                .baseUrl(apiUrl)
-                .apiKey(apiKey)
-                .modelName(modelName)
-                .temperature(temperature)
-                .maxTokens(maxTokens)
-                .timeout(Duration.ofSeconds(timeoutSeconds))
-                .build();
+        // LangChain4j OpenAi builder appends /chat/completions, so strip from configured URL
+        String baseUrl = apiUrl;
+        if (baseUrl.endsWith("/chat/completions")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - "/chat/completions".length());
+        }
+        System.out.println("MatchAgentService init: baseUrl=" + baseUrl + ", model=" + modelName);
 
-        // 构建标准模型
         chatModel = OpenAiChatModel.builder()
-                .baseUrl(apiUrl)
+                .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .temperature(temperature)
                 .maxTokens(maxTokens)
                 .timeout(Duration.ofSeconds(timeoutSeconds))
+                .logRequests(true)
+                .logResponses(true)
                 .build();
 
-        System.out.println("MatchAgentService initialized: model=" + modelName
+        System.out.println("MatchAgentService ready: model=" + modelName
                 + ", maxIterations=" + maxIterations + ", timeout=" + timeoutSeconds + "s");
     }
 
-    /**
-     * @brief 根据 sessionId 获取或创建对话记忆
-     * 每个 session 独立隔离，默认保留最近20条消息
-     */
-    private ChatMemory getOrCreateMemory(String sessionId) {
-        return sessionMemories.computeIfAbsent(sessionId,
+    private ChatMemory getOrCreateMemory(Object sessionId) {
+        return sessionMemories.computeIfAbsent((String) sessionId,
                 k -> MessageWindowChatMemory.withMaxMessages(20));
     }
 
-    /**
-     * @brief 重置指定会话的记忆
-     */
     public void resetMemory(String sessionId) {
         sessionMemories.remove(sessionId);
     }
 
     /**
-     * @brief 获取 Agent 的 TokenStream 用于流式 SSE 响应
-     * @param sessionId 会话ID，用于记忆隔离
+     * @brief 执行 Agent 对话（非流式，Agent 自主调用工具后返回完整结果）
+     * @param sessionId 会话ID
      * @param userMessage 用户消息
-     * @return TokenStream 流式响应对象
+     * @return Agent 完整响应文本
      */
-    public TokenStream chat(String sessionId, String userMessage) {
-        ChatMemory memory = getOrCreateMemory(sessionId);
-
+    public String chat(String sessionId, String userMessage) {
         MatchAgent agent = AiServices.builder(MatchAgent.class)
-                .streamingChatLanguageModel(streamingModel)
-                .chatMemory(memory)
+                .chatLanguageModel(chatModel)
+                .chatMemoryProvider(memoryId -> getOrCreateMemory(memoryId))
                 .tools(agentTools)
                 .build();
 

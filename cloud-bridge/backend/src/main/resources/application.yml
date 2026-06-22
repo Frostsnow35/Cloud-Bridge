@@ -51,7 +51,7 @@ ai:
     # - mistralai/mixtral-8x7b-instruct-v0.1 (免费额度)
     url: ${AI_API_URL:https://integrate.api.nvidia.com/v1/chat/completions}
     key: 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
-    model: ${AI_API_MODEL:meta/llama3.1-8b-instruct}
+    model: ${AI_API_MODEL:meta/llama-3.1-8b-instruct}
     embedding-model: ${AI_EMBEDDING_MODEL:nvidia/nv-embedqa-e5-v5}
   agent:
     # Agent 编排配置

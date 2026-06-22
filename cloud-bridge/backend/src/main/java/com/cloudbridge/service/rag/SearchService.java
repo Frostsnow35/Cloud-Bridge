@@ -645,18 +645,14 @@ public class SearchService {
                 }
             }
         } catch (Exception e) {
-            // Fallback to memory store first
             Map<String, String> indexData = memoryStore.get(indexName);
             if (indexData != null && indexData.containsKey(id)) {
                 return indexData.get(id);
             }
             
             System.err.println("GetById failed for " + id + " in " + indexName + ": " + e.getMessage());
-            // Fallback to mock data for demo (but avoid for public_platforms if empty)
             List<String> mocks = getMockData(indexName, null);
             if (!mocks.isEmpty()) {
-                // BUG FIX: Do NOT blindly return the first item. Check if ID matches.
-                // For hardcoded mocks, we might iterate.
                 for (String mockJson : mocks) {
                     try {
                         JsonNode node = objectMapper.readTree(mockJson);
@@ -670,5 +666,81 @@ public class SearchService {
             }
         }
         return null;
+    }
+
+    public void deleteDocument(String indexName, String id) {
+        memoryStore.computeIfAbsent(indexName, k -> new ConcurrentHashMap<>()).remove(id);
+        
+        String url = esUrl + "/" + indexName + "/_doc/" + id;
+        try {
+            restTemplate.delete(url);
+        } catch (Exception e) {
+            System.err.println("Failed to delete document " + id + " from " + indexName + ": " + e.getMessage());
+        }
+    }
+
+    public List<String> listDocuments(String indexName, int page, int size) {
+        String url = esUrl + "/" + indexName + "/_search";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> bodyMap = new java.util.HashMap<>();
+        bodyMap.put("query", Collections.singletonMap("match_all", new java.util.HashMap<>()));
+        bodyMap.put("from", (page - 1) * size);
+        bodyMap.put("size", size);
+
+        HttpEntity<Object> entity = new HttpEntity<>(bodyMap, headers);
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.postForEntity(url, entity, JsonNode.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                JsonNode hits = response.getBody().path("hits").path("hits");
+                List<String> results = new ArrayList<>();
+                if (hits.isArray()) {
+                    for (JsonNode hit : hits) {
+                        results.add(hit.path("_source").toString());
+                    }
+                }
+                return results;
+            }
+        } catch (Exception e) {
+            System.err.println("List documents failed: " + e.getMessage());
+        }
+        
+        Map<String, String> indexData = memoryStore.get(indexName);
+        if (indexData != null) {
+            return new ArrayList<>(indexData.values()).subList(0, Math.min(size, indexData.size()));
+        }
+        return Collections.emptyList();
+    }
+
+    public long countDocuments(String indexName) {
+        String url = esUrl + "/" + indexName + "/_count";
+        try {
+            ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return response.getBody().path("count").asLong();
+            }
+        } catch (Exception e) {
+            System.err.println("Count documents failed: " + e.getMessage());
+        }
+        
+        Map<String, String> indexData = memoryStore.get(indexName);
+        return indexData != null ? indexData.size() : 0;
+    }
+
+    public void clearIndex(String indexName) {
+        memoryStore.remove(indexName);
+        
+        String url = esUrl + "/" + indexName + "/_delete_by_query";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        String body = "{\"query\": {\"match_all\": {}}}";
+        HttpEntity<String> entity = new HttpEntity<>(body, headers);
+        try {
+            restTemplate.postForEntity(url, entity, JsonNode.class);
+        } catch (Exception e) {
+            System.err.println("Clear index failed: " + e.getMessage());
+        }
     }
 }

@@ -220,7 +220,71 @@ docker-compose --version
 sudo systemctl enable docker
 ```
 
-### 4.2 一键部署脚本
+### 4.2 安装 IK 中文分词器（推荐）
+
+IK 分词器是专门为中文设计的分词插件，能显著提升中文搜索效果。
+
+#### 方式一：Docker 部署（推荐）
+
+在 `docker-compose.yml` 中使用自定义镜像：
+
+```dockerfile
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+RUN bin/elasticsearch-plugin install --batch \
+    https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.11.0/elasticsearch-analysis-ik-8.11.0.zip
+```
+
+然后重新构建：
+
+```bash
+docker-compose build elasticsearch
+docker-compose up -d elasticsearch
+```
+
+#### 方式二：本地开发环境
+
+```bash
+cd cloud-bridge/deploy
+chmod +x install-ik-analyzer.sh
+./install-ik-analyzer.sh
+```
+
+或手动安装：
+
+```bash
+# 下载 IK 分词器
+wget https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v8.11.0/elasticsearch-analysis-ik-8.11.0.zip
+
+# 创建插件目录
+mkdir -p elasticsearch-8.11.0/plugins/analysis-ik
+
+# 解压
+unzip -o elasticsearch-analysis-ik-8.11.0.zip -d elasticsearch-8.11.0/plugins/analysis-ik
+
+# 重启 Elasticsearch
+```
+
+#### 验证 IK 分词器安装
+
+```bash
+# 检查插件是否加载
+curl http://localhost:9200/_cat/plugins
+
+# 测试分词效果
+curl -X POST "http://localhost:9200/_analyze" -H "Content-Type: application/json" -d '
+{
+  "analyzer": "ik_max_word",
+  "text": "人工智能技术研究"
+}'
+```
+
+预期输出应包含：
+- 人工智能
+- 人工智能技术
+- 技术
+- 研究
+
+### 4.3 一键部署脚本
 
 创建 `deploy.sh`：
 

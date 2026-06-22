@@ -25,7 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/api/auth/login", "/api/auth/register")
                 .excludePathPatterns("/api/matching/match") // Allow public matching
-                .excludePathPatterns("/api/ai/chat") // Allow public AI chat
+                .excludePathPatterns("/api/ai/**") // Allow public AI chat & agent
                 .excludePathPatterns("/api/libraries/**") // Allow public library browsing
                 // Exclude other public endpoints if any, e.g., Swagger
                 .excludePathPatterns("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**");

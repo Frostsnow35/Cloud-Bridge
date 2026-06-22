@@ -101,6 +101,13 @@ public class RAGDataSeeder implements CommandLineRunner {
                 return;
             }
 
+            // Skip if data already seeded (prevents slow reload on every startup)
+            if (achievementRepository.count() > 0) {
+                System.err.println("Achievements already seeded (" + achievementRepository.count()
+                        + " existing). Skipping CSV reload.");
+                return;
+            }
+
             // ALWAYS Clear existing achievements ONLY if we successfully read the file
             // MUST delete child records first to avoid FK constraint violation
             System.err.println("Clearing existing data (metrics -> achievements)...");
