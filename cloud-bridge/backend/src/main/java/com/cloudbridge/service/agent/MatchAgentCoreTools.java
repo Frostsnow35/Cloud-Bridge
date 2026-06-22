@@ -31,25 +31,41 @@ public class MatchAgentCoreTools {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ToolChainLogger toolChainLogger;
+
     @Tool("从用户需求描述中提取核心画像：关键词、所属领域、应用场景和技术目标。当用户需求描述足够明确时调用此工具。")
     public String extractMatchingProfile(String description) {
+        long start = System.currentTimeMillis();
+        String params = description != null && description.length() > 80 ? description.substring(0, 80) + "..." : description;
+        toolChainLogger.logToolStart("core", "extractMatchingProfile", params);
         try {
             MatchingProfile profile = aiService.extractMatchingProfile(description);
-            return String.format(
+            String result = String.format(
                 "需求画像: 关键词=%s, 领域=%s, 子领域=%s, 应用场景=%s, 技术目标=%s",
                 nvl(profile.getKeyword()), nvl(profile.getField()), nvl(profile.getSubField()),
                 nvl(profile.getApplicationScenario()), nvl(profile.getTechnicalGoal()));
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "extractMatchingProfile", System.currentTimeMillis() - start, summary);
+            return result;
         } catch (Exception e) {
-            return "画像提取失败: " + e.getMessage();
+            String result = "画像提取失败: " + e.getMessage();
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "extractMatchingProfile", System.currentTimeMillis() - start, summary);
+            return result;
         }
     }
 
     @Tool("统一检索平台资源。type 取值为: achievements(科技成果), policies(产业政策), funds(科技金融), experts(领域专家), equipments(共享设备)。query 为搜索关键词。你可以多次调用此工具检索不同类型资源。")
     public String searchResources(String type, String query) {
+        long start = System.currentTimeMillis();
+        toolChainLogger.logToolStart("core", "searchResources", "type=" + type + ", query=" + query);
         try {
             List<String> results = searchService.search(type, query);
             if (results == null || results.isEmpty()) {
-                return "未找到相关" + getTypeName(type) + "。";
+                String result = "未找到相关" + getTypeName(type) + "。";
+                toolChainLogger.logToolEnd("core", "searchResources", System.currentTimeMillis() - start, result);
+                return result;
             }
             StringBuilder sb = new StringBuilder();
             sb.append(getTypeName(type)).append("(").append(results.size()).append("项):\n");
@@ -74,21 +90,31 @@ public class MatchAgentCoreTools {
                 }
                 count++;
             }
-            return sb.toString();
+            String result = sb.toString();
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "searchResources", System.currentTimeMillis() - start, summary);
+            return result;
         } catch (Exception e) {
-            return getTypeName(type) + "检索失败: " + e.getMessage();
+            String result = getTypeName(type) + "检索失败: " + e.getMessage();
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "searchResources", System.currentTimeMillis() - start, summary);
+            return result;
         }
     }
 
     @Tool("根据关键词在数据库中检索候选科技成果。当需要获取详细成果数据（ID、成熟度、价格等）进行筛选推荐时调用。")
     public String searchCandidateAchievements(String keyword) {
+        long start = System.currentTimeMillis();
+        toolChainLogger.logToolStart("core", "searchCandidateAchievements", keyword);
         try {
             List<Achievement> candidates = achievementRepository.findPublishedByKeyword(keyword);
             if (candidates.isEmpty()) {
                 candidates = achievementRepository.findByFieldContainingAndStatus(keyword, Achievement.Status.PUBLISHED);
             }
             if (candidates.isEmpty()) {
-                return "未找到与'" + keyword + "'匹配的科技成果。建议扩大搜索范围。";
+                String result = "未找到与'" + keyword + "'匹配的科技成果。建议扩大搜索范围。";
+                toolChainLogger.logToolEnd("core", "searchCandidateAchievements", System.currentTimeMillis() - start, result);
+                return result;
             }
             StringBuilder sb = new StringBuilder();
             sb.append("找到").append(candidates.size()).append("项候选成果:\n");
@@ -101,9 +127,15 @@ public class MatchAgentCoreTools {
                     a.getPrice() != null ? a.getPrice().toString() : "面议"));
                 count++;
             }
-            return sb.toString();
+            String result = sb.toString();
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "searchCandidateAchievements", System.currentTimeMillis() - start, summary);
+            return result;
         } catch (Exception e) {
-            return "候选成果检索失败: " + e.getMessage();
+            String result = "候选成果检索失败: " + e.getMessage();
+            String summary = result.length() > 100 ? result.substring(0, 100) + "..." : result;
+            toolChainLogger.logToolEnd("core", "searchCandidateAchievements", System.currentTimeMillis() - start, summary);
+            return result;
         }
     }
 

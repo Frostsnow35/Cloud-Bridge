@@ -36,7 +36,14 @@
             <div class="content" v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.text)"></div>
             <div class="content" v-else>{{ msg.text }}</div>
           </div>
-          <div v-if="isLoading" class="message ai">
+          <div v-if="isWaiting" class="message ai waiting-message">
+            <div class="avatar"><el-icon><Cpu /></el-icon></div>
+            <div class="content waiting-content">
+              <span class="pulse-dot"></span>
+              <span class="waiting-text">{{ waitingText }}</span>
+            </div>
+          </div>
+          <div v-if="isLoading && !isWaiting" class="message ai">
             <div class="avatar"><el-icon><Cpu /></el-icon></div>
             <div class="content streaming">
               <span v-if="streamBuffer">{{ streamBuffer }}</span>
@@ -64,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChatDotRound, Close, Cpu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -79,6 +86,43 @@ const chatBody = ref<HTMLElement | null>(null)
 
 // 会话ID，用于多轮对话记忆
 const sessionId = ref('')
+
+// 等待加载状态：发消息后、Agent 首次返回 token 之前
+const isWaiting = ref(false)
+const waitingStage = ref(0) // 0=分析需求, 1=搜索成果, 2=生成方案
+let waitingTimer: ReturnType<typeof setInterval> | null = null
+
+const waitingText = computed(() => {
+  if (waitingStage.value === 2) return '正在生成转化方案'
+  if (waitingStage.value === 1) return '正在搜索匹配的科技成果'
+  return '正在分析您的需求'
+})
+
+const startWaiting = () => {
+  isWaiting.value = true
+  waitingStage.value = 0
+  const startTime = Date.now()
+  waitingTimer = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000
+    if (elapsed >= 8) {
+      waitingStage.value = 2
+    } else if (elapsed >= 3) {
+      waitingStage.value = 1
+    }
+  }, 500)
+}
+
+const stopWaiting = () => {
+  isWaiting.value = false
+  if (waitingTimer !== null) {
+    clearInterval(waitingTimer)
+    waitingTimer = null
+  }
+}
+
+onUnmounted(() => {
+  stopWaiting()
+})
 
 interface Message {
   role: 'user' | 'ai';
@@ -112,6 +156,7 @@ const resetChat = async () => {
   streamBuffer.value = ''
   agentStatus.value = ''
   isLoading.value = false
+  stopWaiting()
   ElMessage.success('对话已重置')
 }
 
@@ -123,7 +168,8 @@ const sendMessage = async () => {
   input.value = ''
   isLoading.value = true
   streamBuffer.value = ''
-  agentStatus.value = '思考中…'
+  agentStatus.value = ''
+  startWaiting()
   scrollToBottom()
 
   // 添加临时 AI 消息用于流式填充
@@ -163,6 +209,9 @@ const sendMessage = async () => {
       for (const line of lines) {
         if (line.startsWith('event:')) {
           const eventType = line.substring(6).trim()
+          if (eventType === 'token' && isWaiting.value) {
+            stopWaiting()
+          }
           agentStatus.value = getStatusForEvent(eventType)
         } else if (line.startsWith('data:')) {
           const data = line.substring(5).trim()
@@ -192,6 +241,7 @@ const sendMessage = async () => {
     streamBuffer.value = ''
   } finally {
     isLoading.value = false
+    stopWaiting()
     scrollToBottom()
   }
 }
@@ -388,6 +438,49 @@ const scrollToBottom = () => {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
+}
+
+/* 等待加载状态样式 */
+.waiting-content {
+  background: rgba(64, 158, 255, 0.12) !important;
+  border: 1px solid rgba(64, 158, 255, 0.25) !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #409eff;
+  flex-shrink: 0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+.waiting-text {
+  color: #a0cfff;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.waiting-text::after {
+  content: '';
+  animation: ellipsis 1.5s steps(4, end) infinite;
+}
+
+@keyframes ellipsis {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 
 /* Markdown 渲染样式 */
