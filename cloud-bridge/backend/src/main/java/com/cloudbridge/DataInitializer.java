@@ -307,7 +307,7 @@ public class DataInitializer implements CommandLineRunner {
             }
             logger.info("Graph data initialized successfully.");
         } catch (Exception e) {
-            logger.error("Failed to initialize graph data (Skipping)", e);
+            logger.warn("Neo4j not available ({}), skipping graph initialization.", e.getMessage());
         }
     }
 }

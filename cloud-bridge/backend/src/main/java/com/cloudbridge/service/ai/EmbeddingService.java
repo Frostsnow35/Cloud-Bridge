@@ -19,30 +19,24 @@ import java.util.ArrayList;
 @Service
 public class EmbeddingService {
 
-    @Value("${ai.api.url}")
-    private String chatApiUrl;
+    @Value("${ai.api.embedding-url:http://localhost:8000/v1/embeddings}")
+    private String embeddingApiUrl;
+
+    @Value("${ai.api.embedding-key:#{null}}")
+    private String embeddingApiKey;
 
     @Value("${ai.api.key}")
-    private String apiKey;
+    private String fallbackApiKey;
 
     @Value("${ai.api.embedding-model:BAAI/bge-large-zh-v1.5}")
     private String embeddingModel;
-
-    private String embeddingApiUrl;
 
     @Autowired
     private RestTemplate restTemplate;
 
     @PostConstruct
     public void init() {
-        // Infer embedding URL from chat URL if not configured
-        if (chatApiUrl != null && chatApiUrl.contains("/chat/completions")) {
-            embeddingApiUrl = chatApiUrl.replace("/chat/completions", "/embeddings");
-        } else {
-            // Fallback default
-            embeddingApiUrl = "http://localhost:8000/v1/embeddings";
-        }
-        System.out.println("EmbeddingService initialized with URL: " + embeddingApiUrl);
+        System.out.println("EmbeddingService initialized: URL=" + embeddingApiUrl + ", model=" + embeddingModel);
     }
 
     public List<Double> getEmbedding(String text) {
@@ -57,8 +51,9 @@ public class EmbeddingService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        if (apiKey != null && !apiKey.isEmpty()) {
-            headers.setBearerAuth(apiKey);
+        String key = (embeddingApiKey != null && !embeddingApiKey.isEmpty()) ? embeddingApiKey : fallbackApiKey;
+        if (key != null && !key.isEmpty()) {
+            headers.setBearerAuth(key);
         }
 
         HttpEntity<EmbeddingRequest> entity = new HttpEntity<>(request, headers);
