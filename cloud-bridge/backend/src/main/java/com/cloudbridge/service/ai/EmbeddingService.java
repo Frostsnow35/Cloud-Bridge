@@ -53,6 +53,7 @@ public class EmbeddingService {
         EmbeddingRequest request = new EmbeddingRequest();
         request.setModel(embeddingModel);
         request.setInput(text);
+        request.setInput_type("query");  // NVIDIA asymmetric models require input_type
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
