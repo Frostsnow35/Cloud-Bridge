@@ -816,6 +816,44 @@ public class AIService {
      * @return 领域大类名称
      */
     /**
+     * @brief 平台 QA 回复：只解答 Agent 身份/平台功能/使用指引问题
+     * 如用户描述技术需求，引导前往智能匹配页面
+     */
+    public String platformQAReply(String message) {
+        String safeMsg = message != null ? message.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是云转桥科技成果转化平台的智能助手，职责是解答关于平台的咨询问题。\n\n" +
+            "**平台功能**：\n" +
+            "1. 成果大厅 —— 浏览和搜索各类科技成果\n" +
+            "2. 智能匹配 —— 描述技术需求，AI 精准匹配科技成果和配套资源\n" +
+            "3. 政策库 —— 查询产业扶持政策和创新补贴\n" +
+            "4. 需求发布 —— 发布企业技术需求\n" +
+            "5. 供需大厅 —— 浏览技术供给和需求信息\n\n" +
+            "**回复规则**：\n" +
+            "1. 如果用户问你是谁或打招呼，简单自我介绍并说明平台功能\n" +
+            "2. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面自行操作，不代为匹配\n" +
+            "3. 回复简洁，3-5句话，纯文本\n" +
+            "4. 需要引导时使用友好语气，如"您可以前往「智能匹配」页面..."\n\n" +
+            "用户消息：\"%s\"", safeMsg
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.7);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "你是云转桥平台助手。只回答问题，不执行匹配。引导用户自行前往智能匹配页面。"),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。";
+        }
+    }
+
+    /**
      * @brief 纯对话回复（非匹配意图）：简单闲聊/问候/咨询
      * @param message 用户消息
      * @return AI 对话回复

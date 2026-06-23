@@ -51,6 +51,12 @@
             </div>
           </div>
         </div>
+        <div class="chat-actions">
+          <el-button type="warning" plain size="small" @click="goToSmartMatch">
+            去智能匹配 →
+          </el-button>
+          <span class="action-hint">如需精准匹配科技成果，建议前往智能匹配页面</span>
+        </div>
         <div class="chat-footer">
           <el-input
             v-model="input"
@@ -129,7 +135,7 @@ interface Message {
   text: string;
 }
 
-const welcomeMsg = '你好！我是云转桥的智能供需对接 Agent。我可以帮你：\n\n- **需求澄清**：多轮追问帮你明确技术需求\n- **智能匹配**：搜索最匹配的科技成果\n- **全链路方案**：整合政策、资金、专家、设备等资源\n\n请描述你的技术需求，我们开始吧！'
+const welcomeMsg = '你好！我是云转桥智能助手，可以帮你了解平台功能和解答使用问题。如需精准匹配科技成果，请前往**智能匹配**页面操作。'
 
 const messages = ref<Message[]>([
   { role: 'ai', text: welcomeMsg }
@@ -137,6 +143,11 @@ const messages = ref<Message[]>([
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value
+}
+
+const goToSmartMatch = () => {
+  toggleChat()
+  router.push('/smart-match')
 }
 
 const resetChat = async () => {
@@ -517,6 +528,19 @@ const scrollToBottom = () => {
   display: block;
   content: '';
   margin-top: 4px;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.action-hint {
+  font-size: 11px;
+  color: #666;
 }
 
 .chat-footer {
