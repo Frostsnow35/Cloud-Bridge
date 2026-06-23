@@ -1,5 +1,6 @@
 package com.cloudbridge.service;
 
+import com.cloudbridge.dto.MatchingProfile;
 import com.cloudbridge.entity.Achievement;
 import com.cloudbridge.entity.EvaluationMetrics;
 import com.cloudbridge.entity.graph.Technology;
@@ -167,8 +168,10 @@ public class MatchingService {
         // 0. Manual/Feedback Match (Ground Truth) - REMOVED as per user request
         // "不存在人工精选"
         
-        // 1. Extract Profile using AI Service
-        com.cloudbridge.dto.MatchingProfile profile = aiService.extractMatchingProfile(demandDescription);
+        // 1. Extract Profile via AI
+        com.cloudbridge.service.ai.AIService.ProfileAndGraph pg = aiService.extractProfileAndGraph(demandDescription);
+        com.cloudbridge.dto.MatchingProfile profile = pg.getProfile();
+        
         String keyword = profile.getKeyword();
         String aiField = profile.getField();
         
@@ -177,15 +180,13 @@ public class MatchingService {
         
         System.out.println("Matching Params -> Keyword: " + keyword + ", Field: " + effectiveField + ", SubField: " + profile.getSubField());
 
-        // 1.1 Extract Knowledge Graph (Dynamic)
-        String graphJson = aiService.extractGraphData(demandDescription);
+        // 1.1 Build knowledge graph using rule engine (no AI call)
+        JsonNode graphNode = buildRuleBasedGraph(profile, keyword);
         try {
-            JsonNode graphNode = objectMapper.readTree(graphJson);
-            // Use profile.getField() as filter for graph augmentation too
             augmentGraphWithAchievements(graphNode, scoredMatches, effectiveField);
             result.put("aiGraph", graphNode);
         } catch (Exception e) {
-            System.err.println("Failed to parse graph JSON: " + e.getMessage());
+            System.err.println("Failed to augment graph: " + e.getMessage());
         }
 
         if (keyword == null || keyword.isEmpty()) {
@@ -501,6 +502,103 @@ public class MatchingService {
             return;
         }
         map.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(points);
+    }
+
+    /**
+     * @brief 基于领域层级规则构建知识图谱，不依赖 AI
+     * @param profile 匹配画像
+     * @param keyword 关键词
+     * @return JsonNode 图谱 JSON
+     */
+    private JsonNode buildRuleBasedGraph(MatchingProfile profile, String keyword) {
+        ObjectNode graph = objectMapper.createObjectNode();
+        ArrayNode nodes = objectMapper.createArrayNode();
+        ArrayNode relationships = objectMapper.createArrayNode();
+        
+        // Root node - 用户需求
+        String rootId = "root";
+        String rootLabel = keyword != null && !keyword.isEmpty() ? keyword : "用户需求";
+        ObjectNode rootNode = objectMapper.createObjectNode();
+        rootNode.put("id", rootId);
+        rootNode.put("label", rootLabel);
+        rootNode.put("type", "Demand");
+        nodes.add(rootNode);
+        
+        // Category node - 一级领域
+        String field = profile.getField();
+        if (field != null && !field.isEmpty()) {
+            String catId = "cat_" + field;
+            ObjectNode catNode = objectMapper.createObjectNode();
+            catNode.put("id", catId);
+            catNode.put("label", field);
+            catNode.put("type", "Category");
+            nodes.add(catNode);
+            
+            // BELONGS_TO: root -> category
+            ObjectNode rel1 = objectMapper.createObjectNode();
+            rel1.put("source", rootId);
+            rel1.put("target", catId);
+            rel1.put("type", "BELONGS_TO");
+            relationships.add(rel1);
+            
+            // SubCategory node - 二级细分领域
+            String subField = profile.getSubField();
+            if (subField != null && !subField.isEmpty()) {
+                String subId = "sub_" + subField;
+                ObjectNode subNode = objectMapper.createObjectNode();
+                subNode.put("id", subId);
+                subNode.put("label", subField);
+                subNode.put("type", "SubCategory");
+                nodes.add(subNode);
+                
+                ObjectNode rel2 = objectMapper.createObjectNode();
+                rel2.put("source", catId);
+                rel2.put("target", subId);
+                rel2.put("type", "INCLUDES");
+                relationships.add(rel2);
+                
+                // Application node - 应用场景
+                String scenario = profile.getApplicationScenario();
+                if (scenario != null && !scenario.isEmpty()) {
+                    String appId = "app_" + scenario;
+                    ObjectNode appNode = objectMapper.createObjectNode();
+                    appNode.put("id", appId);
+                    appNode.put("label", scenario);
+                    appNode.put("type", "Application");
+                    nodes.add(appNode);
+                    
+                    ObjectNode rel3 = objectMapper.createObjectNode();
+                    rel3.put("source", subId);
+                    rel3.put("target", appId);
+                    rel3.put("type", "APPLIED_IN");
+                    relationships.add(rel3);
+                }
+            }
+            
+            // 扩展领域层级子节点
+            if (com.cloudbridge.util.DomainHierarchyUtil.DOMAIN_HIERARCHY.containsKey(field)) {
+                java.util.List<String> children = com.cloudbridge.util.DomainHierarchyUtil.DOMAIN_HIERARCHY.get(field);
+                for (String child : children) {
+                    if (subField != null && child.contains(subField)) continue; // skip if already covered
+                    String childId = "child_" + child;
+                    ObjectNode childNode = objectMapper.createObjectNode();
+                    childNode.put("id", childId);
+                    childNode.put("label", child);
+                    childNode.put("type", "Technology");
+                    nodes.add(childNode);
+                    
+                    ObjectNode rel = objectMapper.createObjectNode();
+                    rel.put("source", catId);
+                    rel.put("target", childId);
+                    rel.put("type", "INCLUDES");
+                    relationships.add(rel);
+                }
+            }
+        }
+        
+        graph.set("nodes", nodes);
+        graph.set("relationships", relationships);
+        return graph;
     }
 
     private void augmentGraphWithAchievements(JsonNode graphNode, Map<Long, ScoredAchievement> scoredMatches, String filterField) {

@@ -34,6 +34,8 @@ ai:
     url: http://127.0.0.1:9/v1/chat/completions
     key: ""
     model: qwen2.5-72B
+  agent:
+    model: qwen2.5-72B
 
 es:
   url: http://localhost:9200

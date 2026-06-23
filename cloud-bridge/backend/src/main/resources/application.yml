@@ -41,7 +41,7 @@ es:
 
 ai:
   api:
-    url: ${AI_API_URL:https://api.deepseek.com/v1/chat/completions}
+    url: ${AI_API_URL:https://api.deepseek.com/chat/completions}
     key: sk-da88a9736b9542489918d4b7afa88a99
     model: ${AI_API_MODEL:deepseek-chat}
     embedding-url: ${AI_EMBEDDING_URL:https://integrate.api.nvidia.com/v1/embeddings}
@@ -51,6 +51,7 @@ ai:
     # Agent 编排配置
     max-iterations: 8          # 最大工具调用轮数
     timeout-seconds: 120       # 超时时间
+    model: ${AI_AGENT_MODEL:deepseek-chat}  # Agent 编排专用模型，不配置则回退使用 ai.api.model
     temperature: 0.1           # 工具调用时使用低温度确保可靠性
     max-tokens: 2048           # 单次响应最大 token 数
 

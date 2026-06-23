@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,9 @@ public class AIService {
 
     @Value("${ai.api.model}")
     private String modelName;
+
+    @Value("${ai.agent.model:#{null}}")
+    private String agentModel;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -222,7 +226,7 @@ public class AIService {
         );
 
         AIRequest request = new AIRequest();
-        request.setModel(modelName);
+        request.setModel(agentModel != null && !agentModel.isEmpty() ? agentModel : modelName);
         request.setTemperature(0.2); // Low temp for precision
         request.setMessages(Arrays.asList(
             new AIRequest.Message("system", "You are a knowledge graph extractor that uses strict Chain of Thought reasoning."),
@@ -404,14 +408,28 @@ public class AIService {
 
         HttpEntity<AIRequest> entity = new HttpEntity<>(request, headers);
         
-        // NVIDIA api.nvidia.com uses standard OpenAI format
-        ResponseEntity<AIResponse> response = restTemplate.postForEntity(apiUrl, entity, AIResponse.class);
-        
-        if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
-            String content = response.getBody().getChoices().get(0).getMessage().getContent();
-            return content.replaceAll("```json", "").replaceAll("```", "").trim();
+        try {
+            // Get raw response string for debugging
+            ResponseEntity<String> rawResponse = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
+            String rawBody = rawResponse.getBody();
+            System.err.println("[AI API RAW RESPONSE] " + rawBody);
+            
+            // Parse into AIResponse
+            AIResponse aiResponse = objectMapper.readValue(rawBody, AIResponse.class);
+            
+            if (aiResponse != null && aiResponse.getChoices() != null && !aiResponse.getChoices().isEmpty()) {
+                String content = aiResponse.getChoices().get(0).getMessage().getContent();
+                return content.replaceAll("```json", "").replaceAll("```", "").trim();
+            }
+            
+            System.err.println("[AI API ERROR] choices is empty or null. Raw body: " + rawBody);
+            throw new RuntimeException("Empty AI response: no choices in response");
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            System.err.println("[AI API ERROR] Failed to parse response: " + e.getMessage());
+            throw new RuntimeException("AI API call or parse failed: " + e.getMessage(), e);
         }
-        throw new RuntimeException("Empty AI response");
     }
 
     private String fallbackGraphExtraction(String text) {
@@ -595,7 +613,7 @@ public class AIService {
         );
 
         AIRequest request = new AIRequest();
-        request.setModel(modelName);
+        request.setModel(agentModel != null && !agentModel.isEmpty() ? agentModel : modelName);
         request.setTemperature(0.2); // Low temp for precision
         request.setMessages(Arrays.asList(
             new AIRequest.Message("system", "You are a helpful assistant that outputs JSON."),
@@ -700,5 +718,32 @@ public class AIService {
             queryKey,
             queryValue
         );
+    }
+
+    /**
+     * @brief 获取匹配画像+图谱。画像由 AI 提取，图谱由调用方（MatchingService）用规则引擎构建。
+     * @param userDescription 用户需求描述
+     * @return ProfileAndGraph 包含 MatchingProfile，graph 由规则引擎填充
+     */
+    public ProfileAndGraph extractProfileAndGraph(String userDescription) {
+        MatchingProfile profile = extractMatchingProfile(userDescription);
+        // graph 由 MatchingService 中的规则引擎构建，此处返回空节点
+        return new ProfileAndGraph(profile, objectMapper.createObjectNode());
+    }
+
+    /**
+     * @brief 合并画像+图谱的返回结果
+     */
+    public static class ProfileAndGraph {
+        private final MatchingProfile profile;
+        private final JsonNode graph;
+
+        public ProfileAndGraph(MatchingProfile profile, JsonNode graph) {
+            this.profile = profile;
+            this.graph = graph;
+        }
+
+        public MatchingProfile getProfile() { return profile; }
+        public JsonNode getGraph() { return graph; }
     }
 }
