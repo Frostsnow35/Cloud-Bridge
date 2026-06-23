@@ -259,4 +259,41 @@ public class AchievementController {
         result.put("total", all.size());
         return ResponseEntity.ok(result);
     }
+
+    /**
+     * @brief 批量重新分类：用 AI 根据标题重新给所有成果分配正确的领域大类
+     */
+    @PostMapping("/reclassify")
+    public ResponseEntity<?> reclassifyAll() {
+        java.util.List<Achievement> all = achievementRepository.findAll();
+        int count = 0;
+        int failCount = 0;
+        for (Achievement a : all) {
+            try {
+                String newField = aiService.classifyField(a.getTitle(), a.getDescription());
+                if (newField != null && !newField.isEmpty() && !newField.equals("面上") && !newField.equals("重点") && !newField.equals("青年") && !newField.equals("面上项目")) {
+                    a.setField(newField);
+                    achievementRepository.save(a);
+                    count++;
+                }
+            } catch (Exception e) {
+                System.err.println("Reclassify failed for achievement " + a.getId() + ": " + e.getMessage());
+                failCount++;
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("reclassified", count);
+        result.put("failed", failCount);
+        result.put("total", all.size());
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * @brief 获取所有已发布成果的领域大类列表（用于前端筛选标签）
+     */
+    @GetMapping("/fields")
+    public ResponseEntity<?> getDistinctFields() {
+        java.util.List<String> fields = achievementRepository.findDistinctFieldsByStatus(Achievement.Status.PUBLISHED);
+        return ResponseEntity.ok(fields);
+    }
 }

@@ -104,7 +104,23 @@ public class RAGDataSeeder implements CommandLineRunner {
             // Skip if data already seeded (prevents slow reload on every startup)
             if (achievementRepository.count() > 0) {
                 System.err.println("Achievements already seeded (" + achievementRepository.count()
-                        + " existing). Skipping CSV reload.");
+                        + " existing). Checking for bad field values...");
+                // Fix field values that aren't valid domain categories (whitelist approach)
+                java.util.Set<String> validDomains = new java.util.HashSet<>(java.util.Arrays.asList(
+                    "生物医药","新材料","新能源","人工智能","大数据","物联网","环保科技","智能制造",
+                    "金融科技","数字孪生","区块链","量子通信","航空航天","农业科技","电子信息","化学化工"
+                ));
+                List<Achievement> all = achievementRepository.findAll();
+                int fixed = 0;
+                for (Achievement a : all) {
+                    if (a.getField() == null || !validDomains.contains(a.getField())) {
+                        String newField = inferDomain(a.getTitle(), "");
+                        a.setField(newField);
+                        achievementRepository.save(a);
+                        fixed++;
+                    }
+                }
+                System.err.println("Fixed " + fixed + " bad field values. Skipping CSV reload.");
                 return;
             }
 
@@ -135,7 +151,7 @@ public class RAGDataSeeder implements CommandLineRunner {
                 achievement.setTitle(title);
                 String desc = "立项批次: " + batch + " | 支持方向: " + direction + " | 级别: " + level;
                 achievement.setDescription(desc);
-                achievement.setField(direction.isEmpty() ? "科技立项" : direction);
+                achievement.setField(inferDomain(title, direction));
                 achievement.setInstitution(unit);
                 achievement.setMaturity("成熟应用"); 
                 achievement.setPrice(new BigDecimal("0.00")); 
@@ -446,5 +462,89 @@ public class RAGDataSeeder implements CommandLineRunner {
             }
         }
         return null;
+    }
+
+    /**
+     * @brief 根据标题关键词推断领域大类，替代CSV中的"支持方向"值
+     */
+    private String inferDomain(String title, String direction) {
+        String t = title;
+        // Drug/medical/biomedical titles
+        if (t.contains("药") || t.contains("医") || t.contains("临床") || t.contains("治疗") || 
+            t.contains("诊断") || t.contains("基因") || t.contains("细胞") || t.contains("蛋白") ||
+            t.contains("免疫") || t.contains("病") || t.contains("靶向") || t.contains("传染") ||
+            t.contains("菌") || t.contains("感染") || t.contains("癌") || t.contains("肿瘤") ||
+            t.contains("干细胞") || t.contains("中药") || t.contains("药理") || t.contains("代谢") ||
+            t.contains("血清") || t.contains("生殖") || t.contains("神经系统")) {
+            return "生物医药";
+        }
+        // AI/computing
+        if (t.contains("智能") || t.contains("深度学习") || t.contains("机器学习") || 
+            t.contains("算法") || t.contains("图像识别") || t.contains("自然语言") ||
+            t.contains("大模型") || t.contains("计算机视觉")) {
+            return "人工智能";
+        }
+        // Materials
+        if (t.contains("材料") || t.contains("纳米") || t.contains("石墨烯") || t.contains("涂层") ||
+            t.contains("高分子") || t.contains("纤维") || t.contains("陶瓷") || t.contains("金属") ||
+            t.contains("复合材料")) {
+            return "新材料";
+        }
+        // Energy
+        if (t.contains("能源") || t.contains("电池") || t.contains("光伏") || t.contains("太阳能") ||
+            t.contains("风电") || t.contains("储能")) {
+            return "新能源";
+        }
+        // Manufacturing/robotics
+        if (t.contains("制造") || t.contains("机器人") || t.contains("机械") || t.contains("加工") ||
+            t.contains("装备") || t.contains("生产")) {
+            return "智能制造";
+        }
+        // Big data
+        if (t.contains("大数据") || t.contains("数据") || t.contains("数据挖掘") || t.contains("预测")) {
+            return "大数据";
+        }
+        // IoT
+        if (t.contains("物联网") || t.contains("传感器") || t.contains("传感")) {
+            return "物联网";
+        }
+        // Environment
+        if (t.contains("生态") || t.contains("环保") || t.contains("污染") || t.contains("气候") ||
+            t.contains("碳") || t.contains("环境") || t.contains("水处理")) {
+            return "环保科技";
+        }
+        // Agriculture
+        if (t.contains("农业") || t.contains("养殖") || t.contains("种植") || t.contains("土壤") ||
+            t.contains("作物") || t.contains("畜牧") || t.contains("水产")) {
+            return "农业科技";
+        }
+        // Aerospace
+        if (t.contains("航天") || t.contains("航空") || t.contains("卫星") || t.contains("飞行器") ||
+            t.contains("宇宙")) {
+            return "航空航天";
+        }
+        // Electronics/communication
+        if (t.contains("通信") || t.contains("电子") || t.contains("电路") || t.contains("芯片") ||
+            t.contains("半导体") || t.contains("5G") || t.contains("光") || t.contains("信号")) {
+            return "电子信息";
+        }
+        // Chemistry
+        if (t.contains("化学") || t.contains("催化") || t.contains("分子") || t.contains("合成") ||
+            t.contains("制剂")) {
+            return "化学化工";
+        }
+        // Finance tech
+        if (t.contains("金融") || t.contains("经济") || t.contains("支付")) {
+            return "金融科技";
+        }
+        // Blockchain
+        if (t.contains("区块链") || t.contains("分布式")) {
+            return "区块链";
+        }
+        // Default fallback for medical/biology sounding
+        if (t.contains("生物") || t.contains("酶") || t.contains("菌") || t.contains("药")) {
+            return "生物医药";
+        }
+        return "电子信息"; // default for科研立项
     }
 }

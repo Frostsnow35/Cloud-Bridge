@@ -117,7 +117,21 @@ const pageSize = ref(12)
 const total = ref(0)
 
 const achievements = ref<any[]>([])
-const fields = ['新材料', '人工智能', '生物医药', '物联网', '金融科技', '智能制造', '航空航天', '新能源']
+const fields = ref<string[]>([])
+
+const fetchFields = async () => {
+  try {
+    const res = await axios.get('/api/achievements/fields')
+    if (Array.isArray(res.data)) {
+      // Filter out meaningless values like "面上", "重点", "青年", "面上项目"
+      fields.value = res.data.filter((f: string) => 
+        !['面上','重点','青年','面上项目','科技立项','重大','一般'].includes(f)
+      )
+    }
+  } catch (e) {
+    fields.value = ['生物医药','人工智能','新材料','新能源','智能制造','大数据','环保科技']
+  }
+}
 
 const fetchAchievements = async () => {
   loading.value = true
@@ -184,6 +198,7 @@ onMounted(() => {
     if (route.query.keyword) {
         searchQuery.value = route.query.keyword as string
     }
+    fetchFields()
     fetchAchievements()
 })
 
@@ -325,9 +340,22 @@ const truncateText = (text: string, length: number) => {
 /* Grid */
 .results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 48px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px 36px;
   padding: 32px;
+}
+
+@media (max-width: 1200px) {
+  .results-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .results-grid {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
 }
 
 .achievement-card {

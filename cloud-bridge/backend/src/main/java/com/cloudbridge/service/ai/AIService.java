@@ -809,4 +809,45 @@ public class AIService {
             return "科技成果";
         }
     }
+
+    /**
+     * @brief 使用 AI 根据成果标题推断正确的领域大类
+     * @param title 成果标题
+     * @return 领域大类名称
+     */
+    public String classifyField(String title, String description) {
+        String safeTitle = title != null ? title.replace("%", "%%") : "";
+        String safeDesc = description != null ? description.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是一个科技领域分类专家。请判断以下科技成果属于哪个领域大类。\n\n" +
+            "**成果标题**: %s\n" +
+            "**成果简要**: %s\n\n" +
+            "**可选领域大类**（只能从以下选择一个最匹配的）:\n" +
+            "生物医药, 新材料, 新能源, 人工智能, 大数据, 物联网, 环保科技, 智能制造, 金融科技, 数字孪生, 区块链, 量子通信, 航空航天, 农业科技, 电子信息, 化学化工\n\n" +
+            "只返回领域名称，不要其他内容。",
+            safeTitle, safeDesc.length() > 300 ? safeDesc.substring(0, 300) : safeDesc
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.1);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a domain classifier. Output only one domain name from the list."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String result = callAI(request).trim();
+            result = result.replaceAll("[\\\"\\.\\n\\r]", "").trim();
+            String[] validFields = {"生物医药","新材料","新能源","人工智能","大数据","物联网","环保科技","智能制造","金融科技","数字孪生","区块链","量子通信","航空航天","农业科技","电子信息","化学化工"};
+            for (String f : validFields) {
+                if (result.contains(f)) return f;
+            }
+            return inferFieldFromKeyword(fallbackExtractKeyword(title));
+        } catch (Exception e) {
+            System.err.println("AI Field Classification Failed: " + e.getMessage());
+            return inferFieldFromKeyword(fallbackExtractKeyword(title));
+        }
+    }
 }

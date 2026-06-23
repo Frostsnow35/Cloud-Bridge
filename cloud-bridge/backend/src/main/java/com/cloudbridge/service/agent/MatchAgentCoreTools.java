@@ -19,6 +19,17 @@ import java.util.List;
 @Component("agentCoreTools")
 public class MatchAgentCoreTools {
 
+    /** ThreadLocal to store the original user message, since LLM may rewrite tool params */
+    private static final ThreadLocal<String> ORIGINAL_USER_MESSAGE = new ThreadLocal<>();
+
+    public static void setUserMessage(String msg) {
+        ORIGINAL_USER_MESSAGE.set(msg);
+    }
+
+    public static void clearUserMessage() {
+        ORIGINAL_USER_MESSAGE.remove();
+    }
+
     @Autowired
     private SearchService searchService;
 
@@ -37,10 +48,15 @@ public class MatchAgentCoreTools {
     @Tool("从用户需求描述中提取核心画像：关键词、所属领域、应用场景和技术目标。当用户需求描述足够明确时调用此工具。")
     public String extractMatchingProfile(String description) {
         long start = System.currentTimeMillis();
-        String params = description != null && description.length() > 80 ? description.substring(0, 80) + "..." : description;
+        // Use original user message if LLM rewrote the parameter
+        String actualInput = ORIGINAL_USER_MESSAGE.get();
+        if (actualInput == null || actualInput.isEmpty()) {
+            actualInput = description;
+        }
+        String params = actualInput.length() > 80 ? actualInput.substring(0, 80) + "..." : actualInput;
         toolChainLogger.logToolStart("core", "extractMatchingProfile", params);
         try {
-            MatchingProfile profile = aiService.extractMatchingProfile(description);
+            MatchingProfile profile = aiService.extractMatchingProfile(actualInput);
             String result = String.format(
                 "需求画像: 关键词=%s, 领域=%s, 子领域=%s, 应用场景=%s, 技术目标=%s",
                 nvl(profile.getKeyword()), nvl(profile.getField()), nvl(profile.getSubField()),

@@ -67,11 +67,8 @@ public class AIController {
                         .name("session")
                         .data("{\"sessionId\":\"" + finalSessionId + "\"}"));
 
-                // 调用 Agent（阻塞等待完整结果，包含工具调用）
-                long agentStart = System.currentTimeMillis();
+                // 调用 Agent 编排器（画像→搜索→推荐 Pipeline）
                 String fullResponse = matchAgentService.chat(finalSessionId, message);
-                long agentDuration = System.currentTimeMillis() - agentStart;
-                System.out.println("[AGENT_TOOLCHAIN] [" + finalSessionId + "] TOTAL Agent response time: " + agentDuration + " ms");
 
                 // 手动分块发送，模拟流式效果
                 int chunkSize = 3;

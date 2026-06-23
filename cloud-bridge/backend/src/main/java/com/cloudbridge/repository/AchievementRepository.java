@@ -39,4 +39,8 @@ public interface AchievementRepository extends JpaRepository<Achievement, Long> 
 
     // Fallback: Latest achievements
     List<Achievement> findTop5ByOrderByCreatedAtDesc();
+
+    // Distinct fields for filter tags
+    @Query("SELECT DISTINCT a.field FROM Achievement a WHERE a.status = :status AND a.field IS NOT NULL AND a.field != ''")
+    List<String> findDistinctFieldsByStatus(@Param("status") Achievement.Status status);
 }
