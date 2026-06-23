@@ -29,6 +29,9 @@ public class AchievementController {
     @Autowired
     private BlockchainService blockchainService;
 
+    @Autowired
+    private com.cloudbridge.service.ai.AIService aiService;
+
     @GetMapping("/debug/all")
     public List<Achievement> getAllDebug() {
         return achievementRepository.findAll();
@@ -184,5 +187,76 @@ public class AchievementController {
         if (achievement.getResourceLinks() != null) {
             achievement.setResourceLinks(Jsoup.clean(achievement.getResourceLinks(), Safelist.none()));
         }
+    }
+
+    /**
+     * @brief AI标签推荐：根据成果内容智能推荐标签
+     */
+    @PostMapping("/{id}/suggest-tags")
+    public ResponseEntity<?> suggestTags(@PathVariable Long id) {
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    String tags = aiService.suggestTags(
+                        achievement.getTitle(), 
+                        achievement.getDescription(),
+                        achievement.getTags()
+                    );
+                    java.util.Map<String, String> result = new java.util.HashMap<>();
+                    result.put("tags", tags);
+                    return ResponseEntity.ok(result);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * @brief 手动更新成果标签（支持自定义标签）
+     */
+    @PutMapping("/{id}/tags")
+    public ResponseEntity<?> updateTags(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String tags = body.get("tags");
+        if (tags == null) {
+            return ResponseEntity.badRequest().body("tags field is required");
+        }
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    achievement.setTags(tags);
+                    achievementRepository.save(achievement);
+                    java.util.Map<String, String> result = new java.util.HashMap<>();
+                    result.put("tags", achievement.getTags());
+                    return ResponseEntity.ok(result);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * @brief 批量自动标签：对所有已有成果使用 AI 打标签
+     */
+    @PostMapping("/auto-tag")
+    public ResponseEntity<?> autoTagAll() {
+        java.util.List<Achievement> all = achievementRepository.findAll();
+        int count = 0;
+        int failCount = 0;
+        for (Achievement a : all) {
+            try {
+                String tags = aiService.suggestTags(
+                    a.getTitle(), 
+                    a.getDescription(),
+                    a.getTags()
+                );
+                if (tags != null && !tags.isEmpty()) {
+                    a.setTags(tags);
+                    achievementRepository.save(a);
+                    count++;
+                }
+            } catch (Exception e) {
+                System.err.println("Auto-tag failed for achievement " + a.getId() + ": " + e.getMessage());
+                failCount++;
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("processed", count);
+        result.put("failed", failCount);
+        result.put("total", all.size());
+        return ResponseEntity.ok(result);
     }
 }

@@ -746,4 +746,67 @@ public class AIService {
         public MatchingProfile getProfile() { return profile; }
         public JsonNode getGraph() { return graph; }
     }
+
+    /**
+     * @brief 使用 AI 根据成果标题和描述推荐标签
+     * @param title 成果标题
+     * @param description 成果描述
+     * @param existingTags 已有的标签（逗号分隔）
+     * @return 推荐的标签列表（逗号分隔）
+     */
+    public String suggestTags(String title, String description, String existingTags) {
+        String safeTitle = title != null ? title.replace("%", "%%") : "";
+        String safeDesc = description != null ? description.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是一个科技成果分类专家。请为以下科技成果推荐贴切的标签（Tags）。\n\n" +
+            "**成果标题**: %s\n" +
+            "**成果描述**: %s\n" +
+            "**已有标签**: %s\n\n" +
+            "**标签规则**:\n" +
+            "1. 标签必须是中文技术/领域关键词，如：基因编辑、新材料、智能制造、生物医药、新能源、人工智能\n" +
+            "2. 推荐 3-6 个标签\n" +
+            "3. 优先从已有标签中选择合适的保留\n" +
+            "4. 标签之间用逗号分隔\n" +
+            "5. 只返回标签字符串，不要其他内容\n" +
+            "6. 标签不要重复\n\n" +
+            "示例输出: 新材料,复合材料,航空航天,高温涂层",
+            safeTitle, safeDesc, existingTags != null ? existingTags : "无"
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.2);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a technology tag classifier. Output only comma-separated tags in Chinese."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String result = callAI(request);
+            result = result.trim();
+            if (result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replaceAll("```json", "").replaceAll("```", "").trim();
+            String[] tags = result.split(",");
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+            for (String tag : tags) {
+                tag = tag.trim();
+                if (!tag.isEmpty() && count < 6) {
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(tag);
+                    count++;
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            System.err.println("AI Tag Suggestion Failed: " + e.getMessage());
+            if (existingTags != null && !existingTags.isEmpty()) {
+                return existingTags;
+            }
+            return "科技成果";
+        }
+    }
 }

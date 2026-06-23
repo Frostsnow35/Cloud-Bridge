@@ -63,6 +63,10 @@
               <h3 class="card-title" :title="item.title">{{ item.title }}</h3>
               <p class="card-desc">{{ truncateText(item.description, 60) }}</p>
               
+              <div class="card-tags" v-if="item.tags">
+                <el-tag v-for="tag in (item.tags || '').split(',').filter(Boolean)" :key="tag" size="small" effect="plain">{{ tag }}</el-tag>
+              </div>
+              
               <div class="card-footer">
                 <div class="institution">
                   <el-icon><School /></el-icon> {{ truncateText(item.institution || '知名高校实验室', 12) }}
@@ -321,9 +325,9 @@ const truncateText = (text: string, length: number) => {
 /* Grid */
 .results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 32px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 48px;
+  padding: 32px;
 }
 
 .achievement-card {
@@ -344,6 +348,20 @@ const truncateText = (text: string, length: number) => {
   transform: translateY(-5px);
   box-shadow: 0 12px 24px rgba(0,0,0,0.3);
   border-color: var(--el-color-primary);
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.card-tags :deep(.el-tag) {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.2);
+  color: var(--gold-primary);
+  font-size: 11px;
 }
 
 .card-glow {

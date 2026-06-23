@@ -94,27 +94,17 @@
     <div class="section-container">
       <div class="content-wrapper">
         <h2 class="section-title">政策资讯</h2>
-        <el-carousel :interval="5000" height="240px" indicator-position="none" arrow="always">
-           <el-carousel-item v-for="i in Math.ceil(policyNews.length / 3)" :key="i">
-             <div class="policy-grid-slide">
-               <div v-for="policy in policyNews.slice((i-1)*3, i*3)" :key="policy.title" class="policy-card" @click="$router.push(`/libraries/policies/${policy.id || 'P001'}`)">
-                  <div class="policy-icon-wrapper">
-                     <img v-if="policy.icon" :src="policy.icon" class="policy-img" />
-                     <el-icon v-else class="policy-icon"><Document /></el-icon>
-                  </div>
-                  <div class="policy-content">
-                    <h3 class="policy-title">{{ policy.title }}</h3>
-                    <div class="policy-meta">
-                      <span class="policy-date-text">{{ policy.publishDate }}</span>
-                      <el-tag size="small" effect="plain">{{ policy.department }}</el-tag>
-                      <el-tag size="small" type="warning">{{ policy.policyType }}</el-tag>
-                    </div>
-                    <p class="policy-desc">{{ truncateText(policy.content, 60) }}</p>
-                  </div>
-               </div>
-             </div>
-           </el-carousel-item>
-        </el-carousel>
+        <div class="policy-article-list">
+          <div v-for="policy in policyNews.slice(0, 3)" :key="policy.title" class="policy-article" @click="$router.push(`/libraries/policies/${policy.id || 'P001'}`)">
+            <h3 class="policy-article-title">{{ policy.title }}</h3>
+            <div class="policy-article-meta">
+              <span class="policy-article-dept">{{ policy.department }}</span>
+              <el-tag size="small" type="warning">{{ policy.policyType }}</el-tag>
+              <span class="policy-article-date">{{ policy.publishDate }}</span>
+            </div>
+            <p class="policy-article-desc">{{ truncateText(policy.content, 120) }}</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -483,65 +473,61 @@ const searchTag = (tag: string) => {
   pointer-events: none;
 }
 
-/* Policy News */
-.policy-grid-slide {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  padding: 5px; /* For shadow */
+/* Policy Article List */
+.policy-article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.policy-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.policy-card {
+.policy-article {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
+  border-left: 4px solid rgba(255, 215, 0, 0.3);
   border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  gap: 20px;
+  padding: 24px 28px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
-.policy-card:hover {
+.policy-article:hover {
+  border-left-color: #FFD700;
   border-color: var(--gold-primary);
-  transform: translateY(-5px);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-.policy-icon-wrapper {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  background: rgba(255, 215, 0, 0.1);
+.policy-article-title {
+  font-size: 18px;
+  color: #fff;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.policy-article-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--gold-glow);
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #888;
 }
 
-.policy-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
+.policy-article-dept {
+  color: #aaa;
 }
 
-.policy-icon {
-  font-size: 28px;
-  color: var(--gold-primary);
+.policy-article-date {
+  color: #666;
 }
 
-.policy-date-text {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-right: 8px;
+.policy-article-desc {
+  font-size: 14px;
+  color: #a0a0a0;
+  line-height: 1.7;
+  margin: 0;
 }
 
 /* News Cards */

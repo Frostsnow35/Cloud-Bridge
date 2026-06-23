@@ -298,9 +298,11 @@ watch(() => route.params.category, () => {
 }
 
 .results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .resource-card {
@@ -437,5 +439,56 @@ watch(() => route.params.category, () => {
 .date {
   font-size: 12px;
   color: #666;
+}
+
+/* Policy Article List Styles */
+.policy-card {
+  padding: 28px 32px;
+  border-left: 4px solid rgba(255, 215, 0, 0.4);
+  height: auto;
+}
+
+.policy-card:hover {
+  transform: translateY(-2px);
+  border-left-color: #FFD700;
+}
+
+.policy-article-header {
+  margin-bottom: 12px;
+}
+
+.policy-article-title {
+  font-size: 20px;
+  color: #fff;
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.policy-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #888;
+}
+
+.policy-article-dept {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #aaa;
+}
+
+.policy-article-date {
+  color: #666;
+}
+
+.policy-article-desc {
+  font-size: 15px;
+  color: #a0a0a0;
+  line-height: 1.8;
+  margin: 0 0 16px 0;
 }
 </style>
