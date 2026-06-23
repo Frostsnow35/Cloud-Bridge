@@ -815,6 +815,48 @@ public class AIService {
      * @param title 成果标题
      * @return 领域大类名称
      */
+    /**
+     * @brief 纯对话回复（非匹配意图）：简单闲聊/问候/咨询
+     * @param message 用户消息
+     * @return AI 对话回复
+     */
+    public String chatReply(String message) {
+        String safeMsg = message != null ? message.replace("%", "%%") : "";
+        
+        String prompt = String.format(
+            "你是云转桥科技成果转化平台的智能助手。请友好、简洁地回复用户。\n\n" +
+            "**平台简介**：云转桥致力于连接技术供给方与需求方，提供科技成果展示、供需智能匹配、政策资讯等服务。\n\n" +
+            "**回复规则**：\n" +
+            "1. 如果用户打招呼或问你是谁，简单自我介绍并引导用户描述技术需求\n" +
+            "2. 介绍平台时提及核心功能：成果大厅、智能匹配、政策库、需求发布\n" +
+            "3. 保持回复在3句话以内，简洁友好\n" +
+            "4. 回复纯文本，不要 Markdown\n\n" +
+            "用户消息：\"%s\"", safeMsg
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.7);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "你是云转桥智能助手，回复简洁友好，纯文本，3句话以内。"),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "你好！我是云转桥智能助手，可以帮你精准匹配科技成果、查找产业政策和对接技术资源。请告诉我你的技术需求吧。";
+        }
+    }
+
+    /**
+     * @brief 直接调用 AI 并返回原始文本（不做 JSON 解析）
+     * 用于意图分类等简单任务
+     */
+    public String callAIDirect(AIRequest request) {
+        return callAI(request);
+    }
+
     public String classifyField(String title, String description) {
         String safeTitle = title != null ? title.replace("%", "%%") : "";
         String safeDesc = description != null ? description.replace("%", "%%") : "";

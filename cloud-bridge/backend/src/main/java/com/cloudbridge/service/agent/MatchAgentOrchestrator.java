@@ -36,11 +36,72 @@ public class MatchAgentOrchestrator {
 
     /**
      * @brief 执行完整供需对接编排流程
+     * 先进行意图分类：闲聊直接回复，匹配意图才走流水线
      * @param sessionId 会话ID
      * @param userMessage 用户原始消息
-     * @return 包含匹配结果的完整回复文本
+     * @return 回复文本
      */
     public String orchestrate(String sessionId, String userMessage) {
+        // ====== 意图分类：先判断用户意图 ======
+        String intent = classifyIntent(userMessage);
+        
+        if ("CHAT".equals(intent)) {
+            // 闲聊/问候/自我介绍 → 直接对话回复
+            return aiService.chatReply(userMessage);
+        }
+        
+        // 匹配意图 → 走完整流水线
+        return runMatchingPipeline(sessionId, userMessage);
+    }
+    
+    /**
+     * @brief 用 AI 分类意图：CHAT（闲聊/问候/介绍） vs MATCH（供需匹配）
+     */
+    private String classifyIntent(String message) {
+        // 快速规则：极短消息大概率是闲聊
+        String trimmed = message != null ? message.trim() : "";
+        if (trimmed.length() <= 4) {
+            String lower = trimmed.toLowerCase();
+            if (lower.startsWith("你好") || lower.startsWith("嗨") || lower.startsWith("hi") 
+                || lower.equals("是谁") || lower.startsWith("谁") || lower.startsWith("你")
+                || lower.startsWith("谢谢") || lower.contains("你好") || lower.startsWith("hello")
+                || lower.equals("？") || lower.equals("?")) {
+                return "CHAT";
+            }
+        }
+        
+        // 快速规则：明显长需求 → 直接匹配
+        if (trimmed.length() > 30) {
+            return "MATCH";
+        }
+        
+        // AI 分类
+        try {
+            String prompt = String.format(
+                "判断以下用户消息的意图类型，只回复 CHAT 或 MATCH。\n" +
+                "CHAT = 闲聊、打招呼、询问你是谁、咨询平台功能、问天气等非匹配意图\n" +
+                "MATCH = 描述技术需求、寻找科技成果、希望对接资源\n" +
+                "用户消息: \"%s\"", trimmed.replace("%", "%%")
+            );
+            var request = new com.cloudbridge.dto.AIRequest();
+            request.setModel("deepseek-chat");
+            request.setTemperature(0);
+            request.setMessages(java.util.Arrays.asList(
+                new com.cloudbridge.dto.AIRequest.Message("system", "Output only CHAT or MATCH."),
+                new com.cloudbridge.dto.AIRequest.Message("user", prompt)
+            ));
+            String result = aiService.callAIDirect(request).trim().toUpperCase();
+            if (result.contains("CHAT")) return "CHAT";
+        } catch (Exception e) {
+            // fallback: 短消息当闲聊
+        }
+        return "MATCH";
+    }
+    
+    /**
+     * @brief 执行匹配流水线（画像提取 → 搜索 → 推荐）
+     */
+    private String runMatchingPipeline(String sessionId, String userMessage) {
         long totalStart = System.currentTimeMillis();
         StringBuilder report = new StringBuilder();
 
@@ -64,7 +125,7 @@ public class MatchAgentOrchestrator {
                 nvl(profile.getKeyword()), nvl(profile.getField()), nvl(profile.getSubField()),
                 nvl(profile.getApplicationScenario()), nvl(profile.getTechnicalGoal()));
         toolChainLogger.logToolEnd(sessionId, "extractMatchingProfile", t1Duration, profileSummary);
-        report.append("【需求画像】").append(profileSummary).append("\n\n");
+        report.append("【需求画像】\n").append(profileSummary).append("\n\n");
 
         // ====== Tier 2: 搜索科技成果 ======
         String keyword = profile.getKeyword();
@@ -113,22 +174,23 @@ public class MatchAgentOrchestrator {
                 : "未找到匹配成果";
         toolChainLogger.logToolEnd(sessionId, "searchCandidateAchievements", t2bDuration, dbSummary);
 
-        // Format achievement results
-        report.append("【科技成果匹配结果】\n");
+        // Format achievement results - 去重并按整洁纯文本展示
+        report.append("【成果匹配结果】\n");
         if (candidates != null && !candidates.isEmpty()) {
+            java.util.Set<String> seen = new java.util.HashSet<>();
             int count = 0;
             for (Achievement a : candidates) {
-                if (count >= 8) {
-                    report.append("...(还有").append(candidates.size() - 8).append("项)\n");
-                    break;
-                }
-                report.append(String.format("%d. **%s**\n", count + 1, a.getTitle()));
-                report.append(String.format("   机构: %s | 领域: %s | 成熟度: %s\n\n",
-                        nvl(a.getInstitution()), nvl(a.getField()), nvl(a.getMaturity())));
+                if (count >= 5) break;
+                if (seen.contains(a.getTitle())) continue;
+                seen.add(a.getTitle());
                 count++;
+                report.append(count).append(". ").append(a.getTitle()).append("\n");
+                report.append("   机构: ").append(nvl(a.getInstitution()))
+                      .append(" | 领域: ").append(nvl(a.getField()))
+                      .append(" | 成熟度: ").append(nvl(a.getMaturity())).append("\n\n");
             }
         } else {
-            report.append("未找到完全匹配的科技成果，建议放宽搜索条件或换个角度描述需求。\n\n");
+            report.append("未找到完全匹配的科技成果，建议换个角度描述需求。\n\n");
         }
 
         // ====== Tier 3: 配套资源搜索 ======
@@ -152,17 +214,9 @@ public class MatchAgentOrchestrator {
             toolChainLogger.logToolEnd(sessionId, "searchResources", tDuration, rSummary);
 
             if (results != null && !results.isEmpty()) {
-                report.append(String.format("- **%s** (%d项): ", resourceNames[i], results.size()));
-                int c = 0;
-                for (String r : results) {
-                    if (c >= 2) break;
-                    String snippet = extractTitleFromJson(r);
-                    if (!snippet.isEmpty()) report.append(snippet).append("; ");
-                    c++;
-                }
-                report.append("\n");
+                report.append(String.format("  %s: 找到%d项\n", resourceNames[i], results.size()));
             } else {
-                report.append(String.format("- **%s**: 暂无直接匹配结果\n", resourceNames[i]));
+                report.append(String.format("  %s: 暂无直接匹配结果\n", resourceNames[i]));
             }
         }
 
