@@ -104,23 +104,52 @@ public class RAGDataSeeder implements CommandLineRunner {
             // Skip if data already seeded (prevents slow reload on every startup)
             if (achievementRepository.count() > 0) {
                 System.err.println("Achievements already seeded (" + achievementRepository.count()
-                        + " existing). Checking for bad field values...");
+                        + " existing). Running data cleanup...");
                 // Fix field values that aren't valid domain categories (whitelist approach)
                 java.util.Set<String> validDomains = new java.util.HashSet<>(java.util.Arrays.asList(
                     "生物医药","新材料","新能源","人工智能","大数据","物联网","环保科技","智能制造",
                     "金融科技","数字孪生","区块链","量子通信","航空航天","农业科技","电子信息","化学化工"
                 ));
+                // Meaningless tag words to strip
+                java.util.Set<String> badTags = new java.util.HashSet<>(java.util.Arrays.asList(
+                    "面上","重点","青年","面上项目","科技立项","重大","一般","省级","市级","国家级","支持方向"
+                ));
                 List<Achievement> all = achievementRepository.findAll();
-                int fixed = 0;
+                int fixedField = 0, fixedDesc = 0, fixedTags = 0;
                 for (Achievement a : all) {
+                    boolean changed = false;
+                    // Fix field
                     if (a.getField() == null || !validDomains.contains(a.getField())) {
-                        String newField = inferDomain(a.getTitle(), "");
-                        a.setField(newField);
-                        achievementRepository.save(a);
-                        fixed++;
+                        a.setField(inferDomain(a.getTitle(), ""));
+                        fixedField++;
+                        changed = true;
                     }
+                    // Fix description: remove "支持方向: 面上" pattern
+                    if (a.getDescription() != null && a.getDescription().contains("支持方向:")) {
+                        a.setDescription(a.getDescription().replaceAll("\\s*\\|\\s*支持方向:\\s*\\S+", ""));
+                        fixedDesc++;
+                        changed = true;
+                    }
+                    // Fix tags: remove meaningless tag words
+                    if (a.getTags() != null && !a.getTags().isEmpty()) {
+                        String[] tags = a.getTags().split(",");
+                        java.util.List<String> clean = new java.util.ArrayList<>();
+                        for (String t : tags) {
+                            t = t.trim();
+                            if (!t.isEmpty() && !badTags.contains(t)) {
+                                clean.add(t);
+                            }
+                        }
+                        String newTags = String.join(",", clean);
+                        if (!newTags.equals(a.getTags())) {
+                            a.setTags(newTags);
+                            fixedTags++;
+                            changed = true;
+                        }
+                    }
+                    if (changed) achievementRepository.save(a);
                 }
-                System.err.println("Fixed " + fixed + " bad field values. Skipping CSV reload.");
+                System.err.println("Cleanup: fixed " + fixedField + " fields, " + fixedDesc + " descriptions, " + fixedTags + " tags.");
                 return;
             }
 
@@ -149,7 +178,7 @@ public class RAGDataSeeder implements CommandLineRunner {
 
                 Achievement achievement = new Achievement();
                 achievement.setTitle(title);
-                String desc = "立项批次: " + batch + " | 支持方向: " + direction + " | 级别: " + level;
+                String desc = "立项批次: " + batch + " | 级别: " + level;
                 achievement.setDescription(desc);
                 achievement.setField(inferDomain(title, direction));
                 achievement.setInstitution(unit);
@@ -158,10 +187,8 @@ public class RAGDataSeeder implements CommandLineRunner {
                 achievement.setOwnerId(1L); 
                 achievement.setStatus(Achievement.Status.PUBLISHED);
                 
-                // Generate Tags
+                // Generate Tags from title keywords only (don't use direction/level as they're not meaningful tags)
                 Set<String> tagSet = new HashSet<>();
-                if (!direction.isEmpty()) tagSet.add(direction);
-                if (!level.isEmpty()) tagSet.add(level);
                 
                 // Simple Keyword Extraction from Title
                 String[] keywords = {

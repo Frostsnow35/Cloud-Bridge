@@ -74,9 +74,9 @@
               <div class="card-glow"></div>
               <div class="carousel-content">
                 <div class="card-header">
-                  <h3>{{ item.title }}</h3>
-                  <div class="price">¥ {{ item.price }}</div>
-                </div>
+                <h3>{{ item.title }}</h3>
+                <div class="price" :class="{ negotiable: item.price === '面议' }">{{ item.price === '面议' ? '面议' : '¥ ' + item.price }}</div>
+              </div>
                 <div class="tags">
                   <span class="meta-tag field-tag">{{ item.field }}</span>
                   <span class="meta-tag maturity-tag">{{ item.maturity }}</span>
@@ -204,7 +204,7 @@ const fetchFeaturedAchievements = async () => {
         title: item.title,
         field: item.field,
         maturity: item.maturity,
-        price: item.price ? `${item.price}万` : '面议',
+        price: item.price && item.price > 0 ? `${item.price}万` : '面议',
         desc: truncateText(item.description, 60),
         // Use random image if no image provided
         image: item.image || `https://picsum.photos/seed/${item.id}/400/300`

@@ -61,7 +61,7 @@
               </div>
               
               <h3 class="card-title" :title="item.title">{{ item.title }}</h3>
-              <p class="card-desc">{{ truncateText(item.description, 60) }}</p>
+              <p class="card-desc">{{ formatCardDesc(item) }}</p>
               
               <div class="card-tags" v-if="item.tags">
                 <el-tag v-for="tag in (item.tags || '').split(',').filter(Boolean)" :key="tag" size="small" effect="plain">{{ tag }}</el-tag>
@@ -237,6 +237,16 @@ const formatPrice = (val: number) => {
 const truncateText = (text: string, length: number) => {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
+}
+
+const formatCardDesc = (item: any) => {
+  // Show institution and tags as description if stored desc is technical template
+  if (item.description && item.description.startsWith('立项批次')) {
+    const parts = [item.institution, item.field, item.tags].filter(Boolean)
+    if (parts.length > 0) return truncateText(parts.join(' · '), 70)
+    return truncateText(item.description, 70)
+  }
+  return truncateText(item.description, 70)
 }
 </script>
 

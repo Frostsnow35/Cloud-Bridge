@@ -71,6 +71,14 @@
             />
           </el-form-item>
 
+          <el-form-item label="标签 (可选)" prop="tags">
+            <el-input 
+              v-model="form.tags" 
+              placeholder="多个标签用逗号分隔，如: 基因编辑,细胞治疗,生物医药"
+            />
+            <div class="form-tip">标签用于分类和搜索，可使用 AI 推荐或在发布后编辑</div>
+          </el-form-item>
+
           <el-form-item label="附件上传 (可选)" prop="files">
              <el-upload
                 class="upload-demo"
@@ -171,6 +179,7 @@ const form = reactive({
   patentInfo: '',
   applicationCases: '',
   resourceLinks: '',
+  tags: '',
   institution: '',
   contactName: '',
   phone: '',
@@ -283,5 +292,11 @@ const submitForm = async () => {
   justify-content: flex-end;
   gap: 15px;
   margin-top: 40px;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
 </style>
