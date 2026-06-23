@@ -1,20 +1,21 @@
 package com.cloudbridge.controller;
 
-import com.cloudbridge.entity.Achievement;
-import com.cloudbridge.service.MatchingService;
+import com.cloudbridge.service.agent.MatchAgentOrchestrator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
+/**
+ * @brief 智能匹配 Controller —— 委托给 MatchAgentOrchestrator（Agent 编排器）
+ */
 @RestController
 @RequestMapping("/api/matching")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MatchingController {
 
     @Autowired
-    private MatchingService matchingService;
+    private MatchAgentOrchestrator matchAgent;
 
     @PostMapping("/match")
     public Map<String, Object> matchDemand(@RequestBody Map<String, Object> request) {
@@ -29,7 +30,8 @@ public class MatchingController {
                 // Ignore invalid budget
             }
         }
-        
-        return matchingService.match(description, field, budget);
+
+        // Agent 编排器 orchestrates MatchingService pipeline
+        return matchAgent.match(description, field, budget);
     }
 }
