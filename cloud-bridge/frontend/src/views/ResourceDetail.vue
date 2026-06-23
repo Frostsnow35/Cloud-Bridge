@@ -9,6 +9,45 @@
       </div>
 
       <div class="detail-card" v-if="item">
+        <!-- Policy Article View (read-only, no interactive buttons) -->
+        <template v-if="category === 'policies'">
+          <div class="policy-article-header">
+            <h1 class="policy-article-title">{{ item.title || item.name }}</h1>
+            <div class="policy-article-meta">
+              <span class="article-meta-item"><el-icon><OfficeBuilding /></el-icon> {{ item.department || '政府机构' }}</span>
+              <el-tag v-if="item.policyType" type="warning">{{ item.policyType }}</el-tag>
+              <span class="article-meta-item">{{ item.publishDate || item.date }}</span>
+            </div>
+          </div>
+          <el-divider />
+          <div class="policy-article-body">
+            <p class="article-paragraph">{{ item.content || item.description || '无内容' }}</p>
+            <!-- Mock article content for richer display -->
+            <div class="mock-article-content">
+              <h2>一、政策背景</h2>
+              <p>为深入贯彻落实国家关于科技创新发展的战略部署，加快推进科技成果转化，促进产业高质量发展，特制定本措施。</p>
+              
+              <h2>二、主要内容</h2>
+              <p>本政策围绕{{ item.title || '相关政策' }}，从资金支持、人才保障、平台建设等多个维度提出具体举措。鼓励企业加大研发投入，支持高校与科研机构开展联合攻关。</p>
+              
+              <h2>三、支持标准</h2>
+              <p>对符合条件的项目，根据其技术水平、市场前景等因素，给予相应的资金补贴、税收优惠和融资支持。具体支持标准以实施细则为准。</p>
+              
+              <h2>四、申报流程</h2>
+              <p>符合条件的单位可向主管部门提交申报材料，经专家评审、公示后确定支持对象。申报时间和具体要求以年度征集通知为准。</p>
+              
+              <h2>五、附则</h2>
+              <p>本措施自发布之日起施行，有效期三年。解释权归发布单位所有。如遇国家政策调整，按新政策执行。</p>
+            </div>
+          </div>
+          <div class="article-source">
+            <span>来源：{{ item.department || '政府机构' }}</span>
+            <span>发布日期：{{ item.publishDate || item.date }}</span>
+          </div>
+        </template>
+
+        <!-- Non-policy Detail View (original) -->
+        <template v-else>
         <div class="card-header">
           <div class="header-main">
             <h1 class="title">{{ item.title || item.name }}</h1>
@@ -164,9 +203,11 @@
           
         </div>
 
+        </template>
+
         <el-divider />
 
-        <div class="card-footer">
+        <div class="card-footer" v-if="category !== 'policies'">
            <el-button type="primary" size="large" @click="handleAction">
              {{ actionButtonText }}
            </el-button>
@@ -182,7 +223,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, OfficeBuilding } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
@@ -379,5 +420,70 @@ onMounted(() => {
   gap: 20px;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+/* Policy Article View Styles */
+.policy-article-header {
+  margin-bottom: 0;
+}
+
+.policy-article-title {
+  font-size: 32px;
+  color: #fff;
+  margin: 0 0 20px 0;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.policy-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 0;
+}
+
+.article-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #aaa;
+}
+
+.policy-article-body {
+  padding: 10px 0;
+}
+
+.article-paragraph {
+  font-size: 16px;
+  color: #bbb;
+  line-height: 1.9;
+  margin-bottom: 30px;
+}
+
+.mock-article-content h2 {
+  font-size: 22px;
+  color: #FFD700;
+  margin: 36px 0 16px 0;
+  font-weight: 600;
+}
+
+.mock-article-content p {
+  font-size: 16px;
+  color: #ccc;
+  line-height: 2;
+  margin-bottom: 20px;
+  text-indent: 2em;
+}
+
+.article-source {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #333;
+  display: flex;
+  gap: 30px;
+  font-size: 13px;
+  color: #666;
 }
 </style>

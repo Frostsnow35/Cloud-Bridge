@@ -341,7 +341,7 @@ const truncateText = (text: string, length: number) => {
 .results-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 48px 36px;
+  gap: 72px 36px;
   padding: 32px;
 }
 
