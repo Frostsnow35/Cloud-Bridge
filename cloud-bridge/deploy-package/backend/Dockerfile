@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.8.5-openjdk-17-slim AS build
+FROM maven:3.8.5-eclipse-temurin-17 AS build
 WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B -DskipTests
@@ -8,12 +8,12 @@ COPY src ./src
 RUN MAVEN_OPTS="-Xms256m -Xmx512m" mvn clean package -DskipTests -q
 
 # Run stage
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 COPY data ./init-data
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache wget curl
 
 EXPOSE 8080
 ENV DATA_DIR=/app/data
