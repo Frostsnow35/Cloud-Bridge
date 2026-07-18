@@ -1,0 +1,933 @@
+package com.cloudbridge.service.ai;
+
+import com.cloudbridge.dto.AIRequest;
+import com.cloudbridge.dto.AIResponse;
+import com.cloudbridge.dto.MatchingProfile;
+import com.cloudbridge.service.rag.SearchService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Map;
+
+@Service
+public class AIService {
+
+    @Value("${ai.api.url}")
+    private String apiUrl;
+
+    @Value("${ai.api.key}")
+    private String apiKey;
+
+    @Value("${ai.api.model}")
+    private String modelName;
+
+    @Value("${ai.agent.model:#{null}}")
+    private String agentModel;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private SearchService searchService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    public String chatWithIntent(String message) {
+        // Escape % to avoid String.format errors
+        String safeMessage = message != null ? message.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是一个‘云桥’技术成果转化平台的智能导航助手。请分析用户的输入，判断意图并返回JSON格式的响应。\n" +
+            "用户输入：\"%s\"\n" +
+            "**核心原则（Boundaries）**：\n" +
+            "1. **角色定位**：你仅负责导航和指引，**不进行决策**。\n" +
+            "2. **拒绝回答**：\n" +
+            "   - **禁止**分析成果优劣或进行对比（如“A和B哪个好”）。\n" +
+            "   - **禁止**回答非科技成果转化领域的通用话题（如天气、政治、娱乐）。\n" +
+            "   - **拒答话术**：必须委婉并引导回业务。例如：“我专注于为您链接技术资源，这个问题我不太了解，不过我可以帮您查找相关的技术成果。”\n" +
+            "3. **术语解释**：如果用户询问技术术语（如“什么是石墨烯”），请简要解释，并在末尾强制追加声明：“（由AI生成，不代表对任何成果的解释）”。\n" +
+            "\n" +
+            "**任务**：\n" +
+            "1. 判断用户意图（Intent）：\n" +
+            "   - NAVIGATE: 用户想要跳转到某个功能页面（包含私有数据页面）。\n" +
+            "   - GUIDANCE: 用户询问如何使用平台功能（如“怎么发布需求”）。\n" +
+            "   - FEEDBACK: 用户想要反馈问题或Bug。\n" +
+            "   - CHAT: 普通闲聊、术语解释或**拒答场景**。\n" +
+            "2. 生成回复（Reply）：亲切、专业的文本回复。\n" +
+            "3. 生成操作（Action）：仅在NAVIGATE或FEEDBACK时需要。\n" +
+            "\n" +
+            "**路由规则（用于NAVIGATE）**：\n" +
+            "- 找成果、找技术、搜索技术 -> /achievements (参数: keyword)\n" +
+            "- 找需求、找资金、搜索需求 -> /needs (参数: keyword)\n" +
+            "- 找专利 -> /libraries/patents (参数: keyword)\n" +
+            "- 找企业、找公司 -> /libraries/enterprises (参数: keyword)\n" +
+            "- 找专家、找人才 -> /libraries/experts (参数: keyword)\n" +
+            "- 找设备、找仪器 -> /libraries/equipments (参数: keyword)\n" +
+            "- 找政策 -> /libraries/policies (参数: keyword)\n" +
+            "- 找资金 -> /libraries/funds (参数: keyword)\n" +
+            "- 智能匹配、自动匹配 -> /match (参数: keyword)\n" +
+            "- 发布需求 -> /needs/publish\n" +
+            "- 个人中心、我的主页 -> /profile\n" +
+            "- 首页 -> /\n" +
+            "**私有数据路由（需鉴权）**：\n" +
+            "- 我的需求、我的发布 -> /profile (参数: tab=demands)\n" +
+            "- 我的成果 -> /profile (参数: tab=achievements)\n" +
+            "- 我的申请、审批进度 -> /messages (参数: tab=sent)\n" +
+            "- 我的收藏、关注 -> /profile (参数: tab=favorites)\n" +
+            "\n" +
+            "**输出格式示例**：\n" +
+            "1. 跳转示例：\n" +
+            "   {\"intent\": \"NAVIGATE\", \"reply\": \"好的，正在为您查找碳纤维相关技术...\", \"action\": {\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/achievements\", \"query\": {\"keyword\": \"碳纤维\"}}}}\n" +
+            "2. 拒答示例：\n" +
+            "   {\"intent\": \"CHAT\", \"reply\": \"这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？\"}\n" +
+            "3. 术语解释示例：\n" +
+            "   {\"intent\": \"CHAT\", \"reply\": \"石墨烯是一种由碳原子构成的二维晶体...（由AI生成，不代表对任何成果的解释）\"}\n" +
+            "\n" +
+            "请严格只返回JSON字符串，不要包含Markdown标记（如```json）。",
+            safeMessage
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.3); // Lower temperature for stability
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a helpful and intelligent assistant for a Tech Transfer Platform. You respond in JSON."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            // Fallback for demo if AI fails
+            System.err.println("AI Chat Intent Failed: " + e.getMessage());
+            return fallbackChatIntent(message);
+        }
+    }
+
+    private String fallbackChatIntent(String message) {
+        // Simple rule-based fallback
+        String intent = "CHAT";
+        String reply = "抱歉，我现在还在学习中。";
+        String actionJson = "null";
+
+        if (containsAny(message, "我的需求", "我的发布")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开个人中心中的需求页签...";
+            actionJson = navigateAction("/profile", "tab", "demands");
+        } else if (message.contains("我的成果")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开个人中心中的成果页签...";
+            actionJson = navigateAction("/profile", "tab", "achievements");
+        } else if (containsAny(message, "申请", "审批")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开消息中心的发送记录...";
+            actionJson = navigateAction("/messages", "tab", "sent");
+        } else if (containsAny(message, "收藏", "关注")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开个人中心中的收藏页签...";
+            actionJson = navigateAction("/profile", "tab", "favorites");
+        } else if (containsAny(message, "发布需求")) {
+            intent = "NAVIGATE";
+            reply = "您可以前往需求发布页继续操作。";
+            actionJson = navigateAction("/needs/publish");
+        } else if (containsAny(message, "成果", "技术")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开成果大厅...";
+            actionJson = navigateAction("/achievements");
+        } else if (containsAny(message, "专利")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开专利资源库...";
+            actionJson = navigateAction("/libraries/patents");
+        } else if (containsAny(message, "企业", "公司")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开企业资源库...";
+            actionJson = navigateAction("/libraries/enterprises");
+        } else if (containsAny(message, "专家", "人才")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开专家资源库...";
+            actionJson = navigateAction("/libraries/experts");
+        } else if (containsAny(message, "设备", "仪器")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开设备资源库...";
+            actionJson = navigateAction("/libraries/equipments");
+        } else if (containsAny(message, "政策")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开政策资源库...";
+            actionJson = navigateAction("/libraries/policies");
+        } else if (containsAny(message, "资金")) {
+            intent = "NAVIGATE";
+            reply = "正在为您打开需求大厅...";
+            actionJson = navigateAction("/needs");
+        } else if (containsAny(message, "匹配", "找")) {
+            intent = "NAVIGATE";
+            reply = "好的，正在为您跳转智能匹配页面...";
+            actionJson = navigateAction("/match");
+        } else if (message.contains("发布")) {
+            intent = "NAVIGATE";
+            reply = "您可以前往需求大厅发布需求。";
+            actionJson = navigateAction("/needs/publish");
+        } else if (containsAny(message, "bug", "反馈", "问题")) {
+            intent = "FEEDBACK";
+            reply = "请填写反馈表单。";
+            actionJson = "{\"type\": \"OPEN_FEEDBACK_FORM\"}";
+        } else if (containsAny(message, "天气", "对比", "好不好")) {
+            intent = "CHAT";
+            reply = "这个问题超出了我的服务范围。不过作为技术助手，我可以帮您查询相关的专利或专家，您需要吗？";
+        }
+
+        return String.format(
+            "{\"intent\": \"%s\", \"reply\": \"%s\", \"action\": %s}",
+            intent, reply, actionJson
+        );
+    }
+
+    public String extractGraphData(String text) {
+        // Escape % to avoid String.format errors
+        String safeText = text != null ? text.replace("%", "%%") : "";
+        
+        String prompt = String.format(
+            "你是一个知识图谱专家。请分析以下需求描述，构建一个清晰、严格的**技术依赖图谱**。\n" +
+            "需求描述：\"%s\"。\n" +
+            "请按照以下步骤进行思维链（Chain of Thought）分析：\n" +
+            "1. **实体识别**：仅提取**核心技术实体**和**直接应用场景**。忽略泛泛而谈的概念（如“高效”、“智能”）。\n" +
+            "2. **关系构建**：仅允许建立以下三种强关系：\n" +
+            "   - **BELONGS_TO** (属于): 如 'T800碳纤维' BELONGS_TO '新材料'\n" +
+            "   - **APPLIED_IN** (应用于): 如 '脑机接口' APPLIED_IN '医疗康复'\n" +
+            "   - **REQUIRES** (依赖): 如 '深度学习' REQUIRES '高性能计算'\n" +
+            "   **禁止建立松散关联**（如 '脑机接口' -> '未来科技'，或 '脑机接口' -> '工业检测' 除非文中明确提及）。\n" +
+            "3. **JSON生成**：基于上述分析，生成符合Schema的JSON。\n" +
+            "\n" +
+            "**Schema定义**：\n" +
+            "- nodes: [{id, label, type}]\n" +
+            "- relationships: [{source, target, type}]\n" +
+            "**Few-Shot Example**:\n" +
+            "Input: \"我们需要研发用于航空发动机叶片的耐高温陶瓷基复合材料。\"\n" +
+            "CoT: \n" +
+            "- 实体识别: 耐高温陶瓷基复合材料(Technology), 航空发动机叶片(Application)\n" +
+            "- 分类推导: 陶瓷基复合材料 -> 复合材料(SubCategory) -> 新材料(Category)\n" +
+            "- 关系构建: 陶瓷基复合材料 APPLIED_IN 航空发动机叶片\n" +
+            "JSON: {\"nodes\": [{\"id\": \"root\", \"label\": \"耐高温陶瓷基复合材料\", \"type\": \"Demand\"}, {\"id\": \"c1\", \"label\": \"新材料\", \"type\": \"Category\"}, {\"id\": \"s1\", \"label\": \"复合材料\", \"type\": \"SubCategory\"}, {\"id\": \"t1\", \"label\": \"陶瓷基复合材料\", \"type\": \"Technology\"}, {\"id\": \"a1\", \"label\": \"航空发动机叶片\", \"type\": \"Application\"}], \"relationships\": [{\"source\": \"root\", \"target\": \"c1\", \"type\": \"BELONGS_TO\"}, {\"source\": \"c1\", \"target\": \"s1\", \"type\": \"INCLUDES\"}, {\"source\": \"s1\", \"target\": \"t1\", \"type\": \"IMPLEMENTED_BY\"}, {\"source\": \"t1\", \"target\": \"a1\", \"type\": \"APPLIED_IN\"}]}\n" +
+            "\n" +
+            "请输出最终的JSON，不要包含Markdown标记。",
+            safeText
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(agentModel != null && !agentModel.isEmpty() ? agentModel : modelName);
+        request.setTemperature(0.2); // Low temp for precision
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a knowledge graph extractor that uses strict Chain of Thought reasoning."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            System.err.println("AI Graph Extraction Failed, using fallback: " + e.getMessage());
+            return fallbackGraphExtraction(text);
+        }
+    }
+
+    public String analyzeDemandWithRAG(String demandText) {
+        // 1. Retrieve context
+        List<String> policies = searchService.search("policies", demandText);
+        List<String> funds = searchService.search("funds", demandText);
+        List<String> equipments = searchService.search("equipments", demandText);
+        
+        // 2. Construct Prompt with Context
+        String context = "相关政策:\n" + String.join("\n", policies) + 
+                         "\n相关资金:\n" + String.join("\n", funds) +
+                         "\n相关设备:\n" + String.join("\n", equipments);
+        
+        // Escape for String.format
+        String safeDemandText = demandText != null ? demandText.replace("%", "%%") : "";
+        String safeContext = context.replace("%", "%%");
+                         
+        String prompt = String.format(
+            "你是一个科技成果转化专家。请基于以下用户需求和参考资料（RAG Context），生成一份详细的分析报告。\n" +
+            "用户需求：\"%s\"\n" +
+            "参考资料：\n%s\n" +
+            "请分析：\n" +
+            "1. 技术可行性与领域定位。\n" +
+            "2. 政策匹配：引用参考资料中的具体政策。\n" +
+            "3. 资源推荐：引用参考资料中的资金或设备。\n",
+            safeDemandText, safeContext
+        );
+        
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.5);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are an expert consultant for technology transfer."),
+            new AIRequest.Message("user", prompt)
+        ));
+        
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "Analysis failed: " + e.getMessage();
+        }
+    }
+
+    public java.util.Map<Long, Double> evaluateMatches(String demandDesc, MatchingProfile profile, java.util.List<com.cloudbridge.entity.Achievement> candidates) {
+        if (candidates.isEmpty()) return java.util.Collections.emptyMap();
+        
+        // REVERTED: Removed Few-Shot Learning to avoid algorithm bias against new/unknown fields.
+        // We rely purely on the Model's General Knowledge + Logical Reasoning.
+
+        // Construct batch prompt
+        StringBuilder candidateText = new StringBuilder();
+        for (com.cloudbridge.entity.Achievement a : candidates) {
+            candidateText.append(String.format("- ID:%d, Title:%s, Desc:%s\n", a.getId(), a.getTitle(), a.getDescription()));
+        }
+
+        String prompt = String.format(
+            "你是一个严格的成果匹配评审专家。请根据以下需求，对候选成果进行匹配度打分。\n" +
+            "**需求详情**：\n" +
+            "描述：%s\n" +
+            "核心画像：领域=%s, 子领域=%s, 应用场景=%s, 技术目标=%s\n" +
+            "\n" +
+            "**候选成果列表**：\n" +
+            "%s\n" +
+            "\n" +
+            "**评分规则**（必须严格遵守）：\n" +
+            "1. **完全不匹配 (0分)**：\n" +
+            "   - 核心领域不同（如'人工智能' vs '新材料'）。\n" +
+            "   - 技术目标完全冲突（如'心脏病治疗' vs '骨骼修复'，即使同属医疗领域）。\n" +
+            "   - **注意**：如果需求是'心脏病'，而成果是'人工骨'，必须给0分。\n" +
+            "2. **弱匹配 (1-50分)**：\n" +
+            "   - 领域相同，但具体应用场景不同。\n" +
+            "   - 关键词部分重叠但核心痛点未解决。\n" +
+            "3. **强匹配 (60-100分)**：\n" +
+            "   - 子领域、应用场景、技术目标均高度吻合。\n" +
+            "\n" +
+            "**任务**：\n" +
+            "请返回一个JSON对象，Key为成果ID，Value为0-100的评分。\n" +
+            "格式示例：{\"101\": 85, \"102\": 0, \"103\": 40}\n" +
+            "只返回JSON，不要Markdown。",
+            demandDesc, profile.getField(), profile.getSubField(), profile.getApplicationScenario(), profile.getTechnicalGoal(), candidateText.toString()
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.1);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a strict matching evaluator. Output JSON only."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String json = callAI(request);
+            return objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<Long, Double>>(){});
+        } catch (Exception e) {
+            System.err.println("AI Reranking Failed: " + e.getMessage());
+            return java.util.Collections.emptyMap();
+        }
+    }
+
+    public com.cloudbridge.entity.EvaluationMetrics analyzeAchievement(com.cloudbridge.entity.Achievement achievement) {
+        String prompt = String.format(
+            "你是一个资深技术评估专家。请对以下科技成果进行多维度量化评估。\n" +
+            "**成果信息**：\n" +
+            "- 标题：%s\n" +
+            "- 描述：%s\n" +
+            "- 领域：%s\n" +
+            "- 用户自选标签：%s\n" + // User provided tags context
+            "\n" +
+            "**逻辑推理任务（Pre-computation Logic）**：\n" +
+            "1. **分类推断**：首先尊重用户的自选标签，结合描述进行标准化分类（如'人工智能-计算机视觉'）。如果用户标签明显错误（如把'苹果'归为'电子产品'），请修正。\n" +
+            "2. **应用场景推演**：基于技术原理，列举3个最可能的应用场景。\n" +
+            "3. **价值评估**：\n" +
+            "   - **行业成熟度 (Maturity)**：技术在当前行业的应用成熟程度（0-100）。\n" +
+            "   - **创新性 (Innovation)**：相比现有技术的突破程度（0-100）。\n" +
+            "   - **技术价值 (Value)**：潜在的经济效益或社会效益（0-100）。\n" +
+            "   - **成本效益 (Cost)**：实施成本与收益的比例（0-100）。\n" +
+            "\n" +
+            "请返回一个JSON对象，包含上述推断结果。\n" +
+            "JSON格式示例：\n" +
+            "{\"category\": \"...\", \"scenarios\": [\"...\", \"...\"], \"maturity\": 85, \"innovation\": 70, \"value\": 90, \"cost\": 60, \"analysis\": \"...\"}\n" +
+            "只返回JSON，不要Markdown。",
+            achievement.getTitle(), achievement.getDescription(), achievement.getField(), 
+            achievement.getTags() != null ? achievement.getTags() : "无"
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.2); // Low temp for stability
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a professional technology evaluator. Output valid JSON only."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String json = callAI(request);
+            JsonNode node = objectMapper.readTree(json);
+            
+            com.cloudbridge.entity.EvaluationMetrics metrics = new com.cloudbridge.entity.EvaluationMetrics();
+            metrics.setAchievement(achievement);
+            metrics.setTechnologyMaturity(node.path("maturity").asInt(50));
+            metrics.setInnovationLevel(node.path("innovation").asInt(50));
+            metrics.setEconomicValue(node.path("value").asInt(50));
+            metrics.setCostEfficiency(node.path("cost").asInt(50));
+            metrics.setAnalysisReport(node.path("analysis").asText("分析暂缺"));
+            
+            return metrics;
+        } catch (Exception e) {
+            System.err.println("AI Analysis Failed: " + e.getMessage());
+            // Fallback
+            com.cloudbridge.entity.EvaluationMetrics fallback = new com.cloudbridge.entity.EvaluationMetrics();
+            fallback.setAchievement(achievement);
+            fallback.setTechnologyMaturity(60);
+            fallback.setInnovationLevel(60);
+            fallback.setEconomicValue(60);
+            fallback.setCostEfficiency(60);
+            fallback.setAnalysisReport("AI分析服务暂时不可用，基于默认规则评估。");
+            return fallback;
+        }
+    }
+
+    private String callAI(AIRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (apiKey != null && !apiKey.isEmpty()) {
+            headers.setBearerAuth(apiKey);
+        }
+
+        HttpEntity<AIRequest> entity = new HttpEntity<>(request, headers);
+        
+        try {
+            // Get raw response string for debugging
+            ResponseEntity<String> rawResponse = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String.class);
+            String rawBody = rawResponse.getBody();
+            System.err.println("[AI API RAW RESPONSE] " + rawBody);
+            
+            // Parse into AIResponse
+            AIResponse aiResponse = objectMapper.readValue(rawBody, AIResponse.class);
+            
+            if (aiResponse != null && aiResponse.getChoices() != null && !aiResponse.getChoices().isEmpty()) {
+                String content = aiResponse.getChoices().get(0).getMessage().getContent();
+                return content.replaceAll("```json", "").replaceAll("```", "").trim();
+            }
+            
+            System.err.println("[AI API ERROR] choices is empty or null. Raw body: " + rawBody);
+            throw new RuntimeException("Empty AI response: no choices in response");
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            System.err.println("[AI API ERROR] Failed to parse response: " + e.getMessage());
+            throw new RuntimeException("AI API call or parse failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String fallbackGraphExtraction(String text) {
+        // Simple rule-based extraction for demo purposes
+        String label1 = "关键技术";
+        String label2 = "应用场景";
+        String catLabel = "相关领域";
+        
+        if (text.contains("碳纤维") || text.contains("材料")) { 
+            label1 = "碳纤维复合材料"; label2 = "航空航天"; catLabel = "新材料";
+        } else if (text.contains("AI") || text.contains("智能") || text.contains("数据")) { 
+            label1 = "深度学习"; label2 = "智慧城市"; catLabel = "人工智能";
+        } else if (text.contains("生物") || text.contains("医药") || text.contains("疫苗")) { 
+            label1 = "基因编辑"; label2 = "新药研发"; catLabel = "生物医药";
+        } else if (text.contains("能源") || text.contains("电池")) { 
+            label1 = "固态电池"; label2 = "新能源汽车"; catLabel = "新能源";
+        }
+
+        String safeText = text.length() > 6 ? text.substring(0, 6) + "..." : text;
+        
+        return String.format(
+            "{" +
+            "  \"nodes\": [" +
+            "    {\"id\": \"Input\", \"label\": \"%s\", \"type\": \"Demand\"}," +
+            "    {\"id\": \"Cat1\", \"label\": \"%s\", \"type\": \"Category\"}," +
+            "    {\"id\": \"Tech1\", \"label\": \"%s\", \"type\": \"Technology\"}," +
+            "    {\"id\": \"App1\", \"label\": \"%s\", \"type\": \"Application\"}" +
+            "  ]," +
+            "  \"relationships\": [" +
+            "    {\"source\": \"Input\", \"target\": \"Cat1\", \"type\": \"BELONGS_TO\"}," +
+            "    {\"source\": \"Cat1\", \"target\": \"Tech1\", \"type\": \"INCLUDES\"}," +
+            "    {\"source\": \"Tech1\", \"target\": \"App1\", \"type\": \"APPLIED_IN\"}" +
+            "  ]" +
+            "}",
+            safeText, catLabel, label1, label2
+        );
+    }
+
+    public String analyzeDemandWithFullRAG(String demandText) {
+        // 1. Retrieve context from all indices
+        java.util.Map<String, List<String>> allResults = searchService.searchAll(demandText);
+        
+        // 2. Construct Prompt with Categorized Context
+        StringBuilder contextBuilder = new StringBuilder();
+        contextBuilder.append("相关政策:\n").append(String.join("\n", allResults.getOrDefault("policies", Collections.emptyList()))).append("\n\n");
+        contextBuilder.append("相关资金:\n").append(String.join("\n", allResults.getOrDefault("funds", Collections.emptyList()))).append("\n\n");
+        contextBuilder.append("相关专家:\n").append(String.join("\n", allResults.getOrDefault("experts", Collections.emptyList()))).append("\n\n");
+        contextBuilder.append("相关设备:\n").append(String.join("\n", allResults.getOrDefault("equipments", Collections.emptyList()))).append("\n\n");
+        contextBuilder.append("相关专利:\n").append(String.join("\n", allResults.getOrDefault("patents", Collections.emptyList()))).append("\n\n");
+        contextBuilder.append("相关企业:\n").append(String.join("\n", allResults.getOrDefault("enterprises", Collections.emptyList()))).append("\n\n");
+        
+        String safeDemandText = demandText != null ? demandText.replace("%", "%%") : "";
+        String safeContext = contextBuilder.toString().replace("%", "%%");
+        
+        String prompt = String.format(
+            "你是一个科技成果转化与产业分析专家。请基于以下用户需求和全方位参考资料（RAG Context），生成一份深度的**可行性与落地分析报告**。\n" +
+            "用户需求：\"%s\"\n" +
+            "参考资料：\n%s\n" +
+            "请按以下结构生成报告（Markdown格式）：\n" +
+            "## 1. 技术可行性与领域定位\n" +
+            "- 分析技术难点与当前成熟度。\n" +
+            "- 结合【相关专利】和【相关专家】，评估技术壁垒。\n" +
+            "\n" +
+            "## 2. 产业资源匹配\n" +
+            "- **政策支持**：引用【相关政策】中的具体条款，说明可申请的补贴或资质。\n" +
+            "- **资金渠道**：推荐【相关资金】中的产品，并给出融资建议。\n" +
+            "- **合作伙伴**：基于【相关企业】推荐潜在的上下游合作伙伴。\n" +
+            "\n" +
+            "## 3. 落地建议\n" +
+            "- 综合以上信息，给出具体的行动路线图（如：先申请X专利，再对接Y基金）。\n",
+            safeDemandText, safeContext
+        );
+        
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.5);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a senior expert consultant for technology transfer."),
+            new AIRequest.Message("user", prompt)
+        ));
+        
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "Deep analysis failed: " + e.getMessage();
+        }
+    }
+
+    public String generateResourceGraph(String type, String id) {
+        // 1. Get the target entity
+        String indexName = type.toLowerCase() + "s"; // simple pluralization
+        if (indexName.endsWith("ss")) indexName = indexName.substring(0, indexName.length() - 1);
+        if (type.equals("policy")) indexName = "policies";
+        if (type.equals("fund")) indexName = "funds";
+        if (type.equals("expert")) indexName = "experts";
+        if (type.equals("equipment")) indexName = "equipments";
+        if (type.equals("patent")) indexName = "patents";
+        if (type.equals("enterprise")) indexName = "enterprises";
+
+        String entityJson = searchService.getById(indexName, id);
+        if (entityJson == null) return "{\"error\": \"Entity not found\"}";
+        
+        // 2. Extract key info
+        String keyword = "";
+        try {
+            JsonNode node = objectMapper.readTree(entityJson);
+            if (node.has("title")) keyword = node.get("title").asText();
+            else if (node.has("name")) keyword = node.get("name").asText();
+            else if (node.has("field")) keyword = node.get("field").asText();
+        } catch (Exception e) {
+            keyword = "Technology";
+        }
+        
+        // 3. Search related entities
+        java.util.Map<String, List<String>> related = searchService.searchAll(keyword);
+        
+        // 4. Use AI to construct an EXPLANATORY graph
+        StringBuilder relatedContext = new StringBuilder();
+        int count = 0;
+        for (Map.Entry<String, List<String>> entry : related.entrySet()) {
+            for (String item : entry.getValue()) {
+                if (count++ > 10) break; // Limit context size
+                relatedContext.append(entry.getKey()).append(": ").append(item).append("\n");
+            }
+        }
+        
+        String prompt = String.format(
+            "请基于核心实体和相关资源，构建一个**解释型关联图谱（Explanatory Graph）**。\n" +
+            "核心实体 (%s): %s\n" +
+            "相关资源:\n%s\n" +
+            "**任务**：\n" +
+            "1. 构建一个逻辑清晰的图谱，解释**为什么**这些资源与核心实体相关。\n" +
+            "2. **节点类型**：\n" +
+            "   - Core (核心实体)\n" +
+            "   - KeyTech (关键技术点/子领域)\n" +
+            "   - Resource (匹配的资源)\n" +
+            "3. **路径结构**：Core -> [NEEDS/USES] -> KeyTech -> [PROVIDED_BY/SUPPORTED_BY] -> Resource\n" +
+            "4. **严格过滤**：只保留逻辑强相关的节点，去除无关的噪声节点。\n" +
+            "5. 返回符合 ECharts Graph 数据格式的 JSON: { \"nodes\": [{ \"id\": \"...\", \"name\": \"...\", \"category\": \"Core/KeyTech/Resource\" }], \"links\": [{ \"source\": \"...\", \"target\": \"...\", \"name\": \"NEEDS/USES/...\" }] }\n" +
+            "只返回JSON，不要Markdown。",
+            type, entityJson.replace("%", "%%"), relatedContext.toString().replace("%", "%%")
+        );
+        
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.1); // Low temp for strict logic
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a logic visualization expert."),
+            new AIRequest.Message("user", prompt)
+        ));
+        
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "{\"nodes\": [], \"links\": []}";
+        }
+    }
+
+    public MatchingProfile extractMatchingProfile(String userDescription) {
+        String safeDesc = userDescription != null ? userDescription.replace("%", "%%") : "";
+        
+        String prompt = String.format(
+            "你是一个科技成果转化专家。请从以下用户需求描述中，提取出关键的匹配画像信息。\n" +
+            "用户描述：\"%s\"。\n" +
+            "请提取以下5个字段：\n" +
+            "1. **keyword** (核心技术关键词): 如 '深度学习', '石墨烯'\n" +
+            "2. **field** (所属一级领域): 必须从以下列表中选择一个: [\"生物医药\", \"新材料\", \"新能源\", \"人工智能\", \"大数据\", \"物联网\", \"环保科技\", \"智能制造\", \"金融科技\", \"数字孪生\", \"区块链\", \"量子通信\"]\n" +
+            "3. **subField** (二级细分领域): 如 '脑机接口', '计算机视觉', '基因编辑'\n" +
+            "4. **applicationScenario** (具体应用场景): 如 '医疗康复', '工业缺陷检测', '智慧交通'\n" +
+            "5. **technicalGoal** (核心技术目标): 如 '信号采集与解码', '提高识别准确率', '降低能耗'\n" +
+            "\n" +
+            "**Few-Shot Examples**:\n" +
+            "Input: \"希望能研发一种通过脑电波控制机械臂的技术，帮助中风患者进行康复训练。\"\n" +
+            "Output: {\"keyword\": \"脑电波控制\", \"field\": \"人工智能\", \"subField\": \"脑机接口\", \"applicationScenario\": \"医疗康复\", \"technicalGoal\": \"运动控制与神经反馈\"}\n" +
+            "\n" +
+            "Input: \"工厂流水线上需要一种能自动识别产品表面划痕和污渍的视觉系统。\"\n" +
+            "Output: {\"keyword\": \"表面缺陷检测\", \"field\": \"人工智能\", \"subField\": \"计算机视觉\", \"applicationScenario\": \"工业制造\", \"technicalGoal\": \"自动化缺陷识别\"}\n" +
+            "\n" +
+            "请严格以JSON格式返回，不要包含任何Markdown标记。",
+            safeDesc
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(agentModel != null && !agentModel.isEmpty() ? agentModel : modelName);
+        request.setTemperature(0.2); // Low temp for precision
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a helpful assistant that outputs JSON."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String json = callAI(request);
+            return objectMapper.readValue(json, MatchingProfile.class);
+        } catch (Exception e) {
+            System.err.println("AI Profile Extraction Error: " + e.getMessage());
+            // Fallback
+            MatchingProfile p = new MatchingProfile();
+            String k = fallbackExtractKeyword(userDescription);
+            p.setKeyword(k);
+            p.setField(inferFieldFromKeyword(k));
+            return p;
+        }
+    }
+
+    private String inferFieldFromKeyword(String keyword) {
+        if (keyword == null) return "";
+        if (keyword.equals("深度学习") || keyword.equals("神经网络") || keyword.equals("机器学习") || 
+            keyword.equals("自然语言处理") || keyword.equals("计算机视觉") || keyword.equals("知识图谱")) {
+            return "人工智能";
+        }
+        if (keyword.equals("区块链") || keyword.equals("分布式")) return "区块链";
+        if (keyword.equals("量子通信")) return "量子通信";
+        if (keyword.equals("辅助诊断") || keyword.equals("疾病筛查") || keyword.equals("智慧医疗")) return "生物医药";
+        if (keyword.equals("金融科技")) return "金融科技";
+        if (keyword.equals("环保科技")) return "环保科技";
+        if (keyword.equals("智能制造")) return "智能制造";
+        if (keyword.equals("智慧交通")) return "人工智能"; // Broad categorization
+        return "";
+    }
+
+    public String extractKeywords(String userDescription) {
+        try {
+            MatchingProfile profile = extractMatchingProfile(userDescription);
+            return objectMapper.writeValueAsString(profile);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+
+    private String fallbackExtractKeyword(String text) {
+        if (text == null) return "";
+        
+        // 1. Specific Technology Keywords (High Priority)
+        if (text.contains("深度学习")) return "深度学习";
+        if (text.contains("神经网络")) return "神经网络";
+        if (text.contains("机器学习")) return "机器学习";
+        if (text.contains("自然语言")) return "自然语言处理";
+        if (text.contains("计算机视觉")) return "计算机视觉";
+        if (text.contains("知识图谱")) return "知识图谱";
+        if (text.contains("区块链")) return "区块链";
+        if (text.contains("分布式")) return "分布式";
+        if (text.contains("量子")) return "量子通信";
+        
+        // 2. Application/Domain Keywords (Medium Priority)
+        if (text.contains("诊断")) return "辅助诊断";
+        if (text.contains("筛查")) return "疾病筛查";
+        if (text.contains("医疗")) return "智慧医疗";
+        if (text.contains("金融")) return "金融科技";
+        if (text.contains("交通")) return "智慧交通";
+        if (text.contains("环保")) return "环保科技";
+        if (text.contains("制造")) return "智能制造";
+        if (text.contains("教育")) return "智慧教育";
+        if (text.contains("农业")) return "智慧农业";
+
+        // 3. Fallback: First word or Short Phrase
+        // Try to split by space first
+        String[] parts = text.split("\\s+");
+        if (parts.length > 0 && parts[0].length() > 0 && parts[0].length() < 10) {
+            return parts[0];
+        }
+        // Fallback for Chinese or long text without spaces: take first 4 chars
+        return text.substring(0, Math.min(text.length(), 4));
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        if (text == null || keywords == null) {
+            return false;
+        }
+        for (String keyword : keywords) {
+            if (keyword != null && text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String navigateAction(String path) {
+        return String.format("{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"%s\"}}", path);
+    }
+
+    private String navigateAction(String path, String queryKey, String queryValue) {
+        return String.format(
+            "{\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"%s\", \"query\": {\"%s\": \"%s\"}}}",
+            path,
+            queryKey,
+            queryValue
+        );
+    }
+
+    /**
+     * @brief 获取匹配画像+图谱。画像由 AI 提取，图谱由调用方（MatchingService）用规则引擎构建。
+     * @param userDescription 用户需求描述
+     * @return ProfileAndGraph 包含 MatchingProfile，graph 由规则引擎填充
+     */
+    public ProfileAndGraph extractProfileAndGraph(String userDescription) {
+        MatchingProfile profile = extractMatchingProfile(userDescription);
+        // graph 由 MatchingService 中的规则引擎构建，此处返回空节点
+        return new ProfileAndGraph(profile, objectMapper.createObjectNode());
+    }
+
+    /**
+     * @brief 合并画像+图谱的返回结果
+     */
+    public static class ProfileAndGraph {
+        private final MatchingProfile profile;
+        private final JsonNode graph;
+
+        public ProfileAndGraph(MatchingProfile profile, JsonNode graph) {
+            this.profile = profile;
+            this.graph = graph;
+        }
+
+        public MatchingProfile getProfile() { return profile; }
+        public JsonNode getGraph() { return graph; }
+    }
+
+    /**
+     * @brief 使用 AI 根据成果标题和描述推荐标签
+     * @param title 成果标题
+     * @param description 成果描述
+     * @param existingTags 已有的标签（逗号分隔）
+     * @return 推荐的标签列表（逗号分隔）
+     */
+    public String suggestTags(String title, String description, String existingTags) {
+        String safeTitle = title != null ? title.replace("%", "%%") : "";
+        String safeDesc = description != null ? description.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是一个科技成果分类专家。请为以下科技成果推荐贴切的标签（Tags）。\n\n" +
+            "**成果标题**: %s\n" +
+            "**成果描述**: %s\n" +
+            "**已有标签**: %s\n\n" +
+            "**标签规则**:\n" +
+            "1. 标签必须是中文技术/领域关键词，如：基因编辑、新材料、智能制造、生物医药、新能源、人工智能\n" +
+            "2. 推荐 3-6 个标签\n" +
+            "3. 优先从已有标签中选择合适的保留\n" +
+            "4. 标签之间用逗号分隔\n" +
+            "5. 只返回标签字符串，不要其他内容\n" +
+            "6. 标签不要重复\n\n" +
+            "示例输出: 新材料,复合材料,航空航天,高温涂层",
+            safeTitle, safeDesc, existingTags != null ? existingTags : "无"
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.2);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a technology tag classifier. Output only comma-separated tags in Chinese."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String result = callAI(request);
+            result = result.trim();
+            if (result.startsWith("\"") && result.endsWith("\"")) {
+                result = result.substring(1, result.length() - 1);
+            }
+            result = result.replaceAll("```json", "").replaceAll("```", "").trim();
+            String[] tags = result.split(",");
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+            for (String tag : tags) {
+                tag = tag.trim();
+                if (!tag.isEmpty() && count < 6) {
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(tag);
+                    count++;
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            System.err.println("AI Tag Suggestion Failed: " + e.getMessage());
+            if (existingTags != null && !existingTags.isEmpty()) {
+                return existingTags;
+            }
+            return "科技成果";
+        }
+    }
+
+    /**
+     * @brief 使用 AI 根据成果标题推断正确的领域大类
+     * @param title 成果标题
+     * @return 领域大类名称
+     */
+    /**
+     * @brief 平台 QA 回复：只解答 Agent 身份/平台功能/使用指引问题
+     * 如用户描述技术需求，引导前往智能匹配页面
+     */
+    public String platformQAReply(String message) {
+        String safeMsg = message != null ? message.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是云转桥科技成果转化平台的智能助手，职责是解答关于平台的咨询问题。\n\n" +
+            "**平台功能**：\n" +
+            "1. 成果大厅 —— 浏览和搜索各类科技成果\n" +
+            "2. 智能匹配 —— 描述技术需求，AI 精准匹配科技成果和配套资源\n" +
+            "3. 政策库 —— 查询产业扶持政策和创新补贴\n" +
+            "4. 需求发布 —— 发布企业技术需求\n" +
+            "5. 供需大厅 —— 浏览技术供给和需求信息\n\n" +
+            "**回复规则**：\n" +
+            "1. 如果用户问你是谁或打招呼，简单自我介绍并说明平台功能\n" +
+            "2. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面自行操作，不代为匹配\n" +
+            "3. 回复简洁，3-5句话，纯文本\n" +
+            "4. 需要引导时使用友好语气，如\"您可以前往「智能匹配」页面...\"\n\n" +
+            "用户消息：\"%s\"", safeMsg
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.7);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "你是云转桥平台助手。只回答问题，不执行匹配。引导用户自行前往智能匹配页面。"),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。";
+        }
+    }
+
+    /**
+     * @brief 纯对话回复（非匹配意图）：简单闲聊/问候/咨询
+     * @param message 用户消息
+     * @return AI 对话回复
+     */
+    public String chatReply(String message) {
+        String safeMsg = message != null ? message.replace("%", "%%") : "";
+        
+        String prompt = String.format(
+            "你是云转桥科技成果转化平台的智能助手。请友好、简洁地回复用户。\n\n" +
+            "**平台简介**：云转桥致力于连接技术供给方与需求方，提供科技成果展示、供需智能匹配、政策资讯等服务。\n\n" +
+            "**回复规则**：\n" +
+            "1. 如果用户打招呼或问你是谁，简单自我介绍并引导用户描述技术需求\n" +
+            "2. 介绍平台时提及核心功能：成果大厅、智能匹配、政策库、需求发布\n" +
+            "3. 保持回复在3句话以内，简洁友好\n" +
+            "4. 回复纯文本，不要 Markdown\n\n" +
+            "用户消息：\"%s\"", safeMsg
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.7);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "你是云转桥智能助手，回复简洁友好，纯文本，3句话以内。"),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            return callAI(request);
+        } catch (Exception e) {
+            return "你好！我是云转桥智能助手，可以帮你精准匹配科技成果、查找产业政策和对接技术资源。请告诉我你的技术需求吧。";
+        }
+    }
+
+    /**
+     * @brief 直接调用 AI 并返回原始文本（不做 JSON 解析）
+     * 用于意图分类等简单任务
+     */
+    public String callAIDirect(AIRequest request) {
+        return callAI(request);
+    }
+
+    public String classifyField(String title, String description) {
+        String safeTitle = title != null ? title.replace("%", "%%") : "";
+        String safeDesc = description != null ? description.replace("%", "%%") : "";
+
+        String prompt = String.format(
+            "你是一个科技领域分类专家。请判断以下科技成果属于哪个领域大类。\n\n" +
+            "**成果标题**: %s\n" +
+            "**成果简要**: %s\n\n" +
+            "**可选领域大类**（只能从以下选择一个最匹配的）:\n" +
+            "生物医药, 新材料, 新能源, 人工智能, 大数据, 物联网, 环保科技, 智能制造, 金融科技, 数字孪生, 区块链, 量子通信, 航空航天, 农业科技, 电子信息, 化学化工\n\n" +
+            "只返回领域名称，不要其他内容。",
+            safeTitle, safeDesc.length() > 300 ? safeDesc.substring(0, 300) : safeDesc
+        );
+
+        AIRequest request = new AIRequest();
+        request.setModel(modelName);
+        request.setTemperature(0.1);
+        request.setMessages(Arrays.asList(
+            new AIRequest.Message("system", "You are a domain classifier. Output only one domain name from the list."),
+            new AIRequest.Message("user", prompt)
+        ));
+
+        try {
+            String result = callAI(request).trim();
+            result = result.replaceAll("[\\\"\\.\\n\\r]", "").trim();
+            String[] validFields = {"生物医药","新材料","新能源","人工智能","大数据","物联网","环保科技","智能制造","金融科技","数字孪生","区块链","量子通信","航空航天","农业科技","电子信息","化学化工"};
+            for (String f : validFields) {
+                if (result.contains(f)) return f;
+            }
+            return inferFieldFromKeyword(fallbackExtractKeyword(title));
+        } catch (Exception e) {
+            System.err.println("AI Field Classification Failed: " + e.getMessage());
+            return inferFieldFromKeyword(fallbackExtractKeyword(title));
+        }
+    }
+}

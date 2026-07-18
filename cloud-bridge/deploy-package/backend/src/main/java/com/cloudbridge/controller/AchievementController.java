@@ -1,0 +1,276 @@
+package com.cloudbridge.controller;
+
+import com.cloudbridge.entity.Achievement;
+import com.cloudbridge.repository.AchievementRepository;
+import javax.validation.Valid;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/achievements")
+@CrossOrigin(origins = "*", maxAge = 3600)
+public class AchievementController {
+
+    @Autowired
+    private AchievementRepository achievementRepository;
+
+    @Autowired
+    private com.cloudbridge.service.ai.AIService aiService;
+
+    @GetMapping("/debug/all")
+    public List<Achievement> getAllDebug() {
+        return achievementRepository.findAll();
+    }
+
+    @GetMapping
+    public Page<Achievement> getAllPublished(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String field
+    ) {
+        Sort sort = Sort.by(Sort.Direction.fromString(direction), sortBy);
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+        
+        return achievementRepository.search(Achievement.Status.PUBLISHED, keyword, field, pageRequest);
+    }
+
+    @GetMapping("/my")
+    public List<Achievement> getMyAchievements(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return achievementRepository.findByOwnerId(userId);
+    }
+    
+    @GetMapping("/pending")
+    public ResponseEntity<?> getPendingAchievements(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Access denied.");
+        }
+        return ResponseEntity.ok(achievementRepository.findByStatus(Achievement.Status.PENDING_REVIEW));
+    }
+
+    @PostMapping
+    public Achievement createAchievement(@Valid @RequestBody Achievement achievement, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        achievement.setOwnerId(userId);
+        achievement.setStatus(Achievement.Status.PENDING_REVIEW);
+        sanitizeAchievement(achievement);
+        return achievementRepository.save(achievement);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateAchievement(@PathVariable Long id, @Valid @RequestBody Achievement achievementDetails, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    if (!achievement.getOwnerId().equals(userId)) {
+                        return ResponseEntity.status(403).body("You can only update your own achievements.");
+                    }
+                    achievement.setTitle(achievementDetails.getTitle());
+                    achievement.setDescription(achievementDetails.getDescription());
+                    achievement.setField(achievementDetails.getField());
+                    achievement.setMaturity(achievementDetails.getMaturity());
+                    achievement.setPrice(achievementDetails.getPrice());
+                    achievement.setInstitution(achievementDetails.getInstitution());
+                    achievement.setContactName(achievementDetails.getContactName());
+                    achievement.setPhone(achievementDetails.getPhone());
+                    achievement.setPatentInfo(achievementDetails.getPatentInfo());
+                    achievement.setApplicationCases(achievementDetails.getApplicationCases());
+                    achievement.setResourceLinks(achievementDetails.getResourceLinks());
+                    sanitizeAchievement(achievement);
+                    return ResponseEntity.ok(achievementRepository.save(achievement));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteAchievement(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    if (!achievement.getOwnerId().equals(userId)) {
+                        return ResponseEntity.status(403).body("You can only delete your own achievements.");
+                    }
+                    achievementRepository.delete(achievement);
+                    return ResponseEntity.ok().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Achievement> getAchievementById(@PathVariable Long id) {
+        return achievementRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/audit")
+    public ResponseEntity<?> auditAchievement(@PathVariable Long id, @RequestParam Achievement.Status status, HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"ADMIN".equals(role)) {
+            return ResponseEntity.status(403).body("Only admins can audit achievements.");
+        }
+        if (status != Achievement.Status.PUBLISHED && status != Achievement.Status.REJECTED) {
+             return ResponseEntity.badRequest().body("Invalid status for audit. Must be PUBLISHED or REJECTED.");
+        }
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    achievement.setStatus(status);
+                    return ResponseEntity.ok(achievementRepository.save(achievement));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    private void sanitizeAchievement(Achievement achievement) {
+        if (achievement.getTitle() != null) {
+            achievement.setTitle(Jsoup.clean(achievement.getTitle(), Safelist.none()));
+        }
+        if (achievement.getDescription() != null) {
+            achievement.setDescription(Jsoup.clean(achievement.getDescription(), Safelist.relaxed()));
+        }
+        if (achievement.getField() != null) {
+            achievement.setField(Jsoup.clean(achievement.getField(), Safelist.none()));
+        }
+        if (achievement.getMaturity() != null) {
+            achievement.setMaturity(Jsoup.clean(achievement.getMaturity(), Safelist.none()));
+        }
+        if (achievement.getInstitution() != null) {
+            achievement.setInstitution(Jsoup.clean(achievement.getInstitution(), Safelist.none()));
+        }
+        if (achievement.getContactName() != null) {
+            achievement.setContactName(Jsoup.clean(achievement.getContactName(), Safelist.none()));
+        }
+        if (achievement.getPhone() != null) {
+            achievement.setPhone(Jsoup.clean(achievement.getPhone(), Safelist.none()));
+        }
+        if (achievement.getPatentInfo() != null) {
+            achievement.setPatentInfo(Jsoup.clean(achievement.getPatentInfo(), Safelist.none()));
+        }
+        if (achievement.getApplicationCases() != null) {
+            achievement.setApplicationCases(Jsoup.clean(achievement.getApplicationCases(), Safelist.relaxed()));
+        }
+        if (achievement.getResourceLinks() != null) {
+            achievement.setResourceLinks(Jsoup.clean(achievement.getResourceLinks(), Safelist.none()));
+        }
+    }
+
+    /**
+     * @brief AI标签推荐：根据成果内容智能推荐标签
+     */
+    @PostMapping("/{id}/suggest-tags")
+    public ResponseEntity<?> suggestTags(@PathVariable Long id) {
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    String tags = aiService.suggestTags(
+                        achievement.getTitle(), 
+                        achievement.getDescription(),
+                        achievement.getTags()
+                    );
+                    java.util.Map<String, String> result = new java.util.HashMap<>();
+                    result.put("tags", tags);
+                    return ResponseEntity.ok(result);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * @brief 手动更新成果标签（支持自定义标签）
+     */
+    @PutMapping("/{id}/tags")
+    public ResponseEntity<?> updateTags(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String tags = body.get("tags");
+        if (tags == null) {
+            return ResponseEntity.badRequest().body("tags field is required");
+        }
+        return achievementRepository.findById(id)
+                .map(achievement -> {
+                    achievement.setTags(tags);
+                    achievementRepository.save(achievement);
+                    java.util.Map<String, String> result = new java.util.HashMap<>();
+                    result.put("tags", achievement.getTags());
+                    return ResponseEntity.ok(result);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * @brief 批量自动标签：对所有已有成果使用 AI 打标签
+     */
+    @PostMapping("/auto-tag")
+    public ResponseEntity<?> autoTagAll() {
+        java.util.List<Achievement> all = achievementRepository.findAll();
+        int count = 0;
+        int failCount = 0;
+        for (Achievement a : all) {
+            try {
+                String tags = aiService.suggestTags(
+                    a.getTitle(), 
+                    a.getDescription(),
+                    a.getTags()
+                );
+                if (tags != null && !tags.isEmpty()) {
+                    a.setTags(tags);
+                    achievementRepository.save(a);
+                    count++;
+                }
+            } catch (Exception e) {
+                System.err.println("Auto-tag failed for achievement " + a.getId() + ": " + e.getMessage());
+                failCount++;
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("processed", count);
+        result.put("failed", failCount);
+        result.put("total", all.size());
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * @brief 批量重新分类：用 AI 根据标题重新给所有成果分配正确的领域大类
+     */
+    @PostMapping("/reclassify")
+    public ResponseEntity<?> reclassifyAll() {
+        java.util.List<Achievement> all = achievementRepository.findAll();
+        int count = 0;
+        int failCount = 0;
+        for (Achievement a : all) {
+            try {
+                String newField = aiService.classifyField(a.getTitle(), a.getDescription());
+                if (newField != null && !newField.isEmpty() && !newField.equals("面上") && !newField.equals("重点") && !newField.equals("青年") && !newField.equals("面上项目")) {
+                    a.setField(newField);
+                    achievementRepository.save(a);
+                    count++;
+                }
+            } catch (Exception e) {
+                System.err.println("Reclassify failed for achievement " + a.getId() + ": " + e.getMessage());
+                failCount++;
+            }
+        }
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("reclassified", count);
+        result.put("failed", failCount);
+        result.put("total", all.size());
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * @brief 获取所有已发布成果的领域大类列表（用于前端筛选标签）
+     */
+    @GetMapping("/fields")
+    public ResponseEntity<?> getDistinctFields() {
+        java.util.List<String> fields = achievementRepository.findDistinctFieldsByStatus(Achievement.Status.PUBLISHED);
+        return ResponseEntity.ok(fields);
+    }
+}

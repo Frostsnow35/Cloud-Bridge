@@ -1,0 +1,876 @@
+package com.cloudbridge.service;
+
+import com.cloudbridge.dto.MatchingProfile;
+import com.cloudbridge.entity.Achievement;
+import com.cloudbridge.entity.EvaluationMetrics;
+import com.cloudbridge.entity.graph.Technology;
+import com.cloudbridge.repository.AchievementRepository;
+import com.cloudbridge.repository.EvaluationMetricsRepository;
+import com.cloudbridge.repository.graph.TechnologyRepository;
+import com.cloudbridge.service.ai.AIService;
+import com.cloudbridge.service.ai.EmbeddingService;
+import com.cloudbridge.service.rag.SearchService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.math.BigDecimal;
+
+import com.cloudbridge.util.DomainHierarchyUtil;
+
+@Service
+public class MatchingService {
+
+    @Autowired
+    private TechnologyRepository technologyRepository;
+
+    @Autowired
+    private AchievementRepository achievementRepository;
+
+    @Autowired
+    private AIService aiService;
+
+    @Autowired
+    private EmbeddingService embeddingService;
+
+    @Autowired
+    private SearchService searchService;
+
+    @Autowired
+    private EvaluationMetricsRepository evaluationMetricsRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // Scoring constants
+    private static final int SCORE_MANUAL_MATCH = 200; // Highest priority
+    private static final int SCORE_VECTOR_MATCH = 80;
+    private static final int SCORE_FIELD_MATCH = 100;
+    private static final int SCORE_KEYWORD_MATCH = 50;
+    private static final int SCORE_GRAPH_MATCH = 20;
+    private static final int SCORE_RELATED_MATCH = 10;
+    private static final int SCORE_TEXT_TITLE_MATCH = 10;
+    private static final int SCORE_TEXT_DESC_MATCH = 5;
+    
+    // Price scoring
+    private static final int SCORE_PRICE_EXCELLENT = 20; // Within 20%
+    private static final int SCORE_PRICE_GOOD = 10;      // Within 50%
+    private static final int SCORE_PRICE_PENALTY = -20;  // > 150% budget
+
+    public static class ScoredAchievement {
+        private final Achievement achievement;
+        private int score;
+
+        public ScoredAchievement(Achievement achievement, int score) {
+            this.achievement = achievement;
+            this.score = score;
+        }
+
+        public void addScore(int points) {
+            this.score += points;
+            // Cap at 100 is removed during calculation to allow high differentiation, capped at display if needed
+            // But let's keep it reasonable
+            if (this.score > 100) this.score = 100;
+            if (this.score < 0) this.score = 0;
+        }
+
+        public void setScore(int score) {
+            this.score = score;
+        }
+
+        public Achievement getAchievement() {
+            return achievement;
+        }
+
+        public int getScore() {
+            return score;
+        }
+    }
+    
+    /**
+     * Fallback method when hybrid search fails.
+     * Performs separate vector and keyword searches.
+     */
+    private void fallbackToSeparateSearch(String demandDescription, Map<Long, ScoredAchievement> scoredMatches, String effectiveField) {
+        try {
+            List<Double> queryVector = embeddingService.getEmbedding(demandDescription);
+            if (!queryVector.isEmpty()) {
+                List<String> vectorResults = searchService.searchVector("achievements", queryVector, 20);
+                for (String json : vectorResults) {
+                    try {
+                        JsonNode node = objectMapper.readTree(json);
+                        if (node.has("id")) {
+                            Long id = node.get("id").asLong();
+                            achievementRepository.findById(id).ifPresent(a -> {
+                                if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                    if (!isFieldMismatch(a, effectiveField)) {
+                                        scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_VECTOR_MATCH);
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        // ignore bad json
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Fallback vector search failed: " + e.getMessage());
+        }
+        
+        // Also try keyword search as fallback
+        try {
+            List<String> keywordResults = searchService.search("achievements", demandDescription);
+            for (String json : keywordResults) {
+                try {
+                    JsonNode node = objectMapper.readTree(json);
+                    if (node.has("id")) {
+                        Long id = node.get("id").asLong();
+                        achievementRepository.findById(id).ifPresent(a -> {
+                            if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                if (!isFieldMismatch(a, effectiveField)) {
+                                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+                                }
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    // ignore bad json
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Fallback keyword search failed: " + e.getMessage());
+        }
+    }
+
+    // Overload for backward compatibility
+    public Map<String, Object> match(String demandDescription) {
+        return match(demandDescription, null, null);
+    }
+
+    public Map<String, Object> match(String demandDescription, String filterField, Double budget) {
+        Map<String, Object> result = new HashMap<>();
+        Map<Long, ScoredAchievement> scoredMatches = new HashMap<>();
+        
+        if (demandDescription == null || demandDescription.trim().isEmpty()) {
+            result.put("matches", new ArrayList<>());
+            result.put("recommendations", new ArrayList<>());
+            result.put("relatedKeywords", new ArrayList<>());
+            return result;
+        }
+
+        // 0. Manual/Feedback Match (Ground Truth) - REMOVED as per user request
+        // "不存在人工精选"
+        
+        // 1. Extract Profile via AI
+        com.cloudbridge.service.ai.AIService.ProfileAndGraph pg = aiService.extractProfileAndGraph(demandDescription);
+        com.cloudbridge.dto.MatchingProfile profile = pg.getProfile();
+        
+        String keyword = profile.getKeyword();
+        String aiField = profile.getField();
+        
+        // Use provided filterField, fallback to AI detected field from profile
+        String effectiveField = (filterField != null && !filterField.isEmpty()) ? filterField : aiField;
+        
+        System.out.println("Matching Params -> Keyword: " + keyword + ", Field: " + effectiveField + ", SubField: " + profile.getSubField());
+
+        // 1.1 Build knowledge graph using rule engine (no AI call)
+        JsonNode graphNode = buildRuleBasedGraph(profile, keyword);
+        try {
+            augmentGraphWithAchievements(graphNode, scoredMatches, effectiveField);
+            result.put("aiGraph", graphNode);
+        } catch (Exception e) {
+            System.err.println("Failed to augment graph: " + e.getMessage());
+        }
+
+        if (keyword == null || keyword.isEmpty()) {
+            keyword = fallbackExtractKeyword(demandDescription);
+        }
+        
+        // 2. Find related technologies
+        List<Technology> relatedTechs = new ArrayList<>();
+        try {
+            if (technologyRepository != null) {
+                 relatedTechs = technologyRepository.findRelatedTechnologies(keyword);
+            }
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to query Knowledge Graph: " + e.getMessage());
+        }
+
+        List<String> relatedKeywords = relatedTechs.stream()
+                .map(Technology::getName)
+                .collect(Collectors.toList());
+        if (keyword != null && keyword.length() > 5) {
+            relatedKeywords.add(keyword.substring(0, 4));
+        }
+        relatedKeywords.add(keyword);
+
+        // 3. Initial Retrieval (Hybrid Search with RRF Fusion)
+
+        // 3.0 Hybrid Search: Vector + Keyword combined with RRF
+        try {
+            List<Double> queryVector = embeddingService.getEmbedding(demandDescription);
+            if (!queryVector.isEmpty()) {
+                // Use hybrid search combining vector and keyword search
+                List<String> hybridResults = searchService.searchHybrid("achievements", queryVector, demandDescription, 30);
+                
+                for (String resultJson : hybridResults) {
+                    try {
+                        JsonNode resultNode = objectMapper.readTree(resultJson);
+                        JsonNode sourceNode = resultNode.path("_source");
+                        
+                        if (sourceNode.has("id")) {
+                            Long id = sourceNode.get("id").asLong();
+                            String sourceType = resultNode.has("_source_type") ? resultNode.get("_source_type").asText() : "unknown";
+                            
+                            // Fetch full entity from DB to ensure up-to-date status/data
+                            achievementRepository.findById(id).ifPresent(a -> {
+                                if (a.getStatus() == Achievement.Status.PUBLISHED) {
+                                    // Check Field Mismatch
+                                    if (!isFieldMismatch(a, effectiveField)) {
+                                        int baseScore = 0;
+                                        double fusedScore = resultNode.has("_fused_score") ? resultNode.get("_fused_score").asDouble() : 0;
+                                        
+                                        // Score based on source type and fused score
+                                        if ("hybrid".equals(sourceType)) {
+                                            // Both vector and keyword matched - highest score
+                                            baseScore = SCORE_VECTOR_MATCH + SCORE_KEYWORD_MATCH;
+                                        } else if ("vector".equals(sourceType)) {
+                                            // Only vector matched
+                                            baseScore = SCORE_VECTOR_MATCH;
+                                        } else if ("keyword".equals(sourceType)) {
+                                            // Only keyword matched
+                                            baseScore = SCORE_KEYWORD_MATCH;
+                                        }
+                                        
+                                        // Bonus score based on RRF fused score (top results get higher bonus)
+                                        int bonusScore = (int)(fusedScore * 50);
+                                        baseScore += bonusScore;
+                                        
+                                        scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(baseScore);
+                                    }
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        // ignore bad json
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Hybrid search failed: " + e.getMessage());
+            // Fallback to separate searches if hybrid fails
+            fallbackToSeparateSearch(demandDescription, scoredMatches, effectiveField);
+        }
+
+        // 3.1 Field Match (Strict Filter Base) - Keep for field-based filtering
+        if (effectiveField != null && !effectiveField.isEmpty()) {
+            List<Achievement> fieldMatches = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
+            for (Achievement a : fieldMatches) {
+                // Only add field match score if not already highly scored (avoid over-counting)
+                ScoredAchievement existing = scoredMatches.get(a.getId());
+                if (existing == null || existing.getScore() < SCORE_FIELD_MATCH) {
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_FIELD_MATCH);
+                }
+            }
+        }
+        
+        // 3.2 Main Keyword Match & HIERARCHY EXPANSION - Enhanced with field boosting
+        if (keyword != null && !keyword.isEmpty()) {
+            // A. Search by keyword itself
+            List<Achievement> keywordMatches = achievementRepository.findPublishedByKeyword(keyword);
+            for (Achievement a : keywordMatches) {
+                if (isFieldMismatch(a, effectiveField)) continue;
+                // Avoid double counting - only add if not already scored by hybrid search
+                ScoredAchievement existing = scoredMatches.get(a.getId());
+                if (existing == null || existing.getScore() < SCORE_KEYWORD_MATCH) {
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_KEYWORD_MATCH);
+                }
+            }
+            
+            // B. Search by hierarchy children (Expansion)
+            for (Map.Entry<String, List<String>> entry : DomainHierarchyUtil.DOMAIN_HIERARCHY.entrySet()) {
+                String domain = entry.getKey();
+                // If keyword matches a domain name (e.g. "生物医药")
+                if (keyword.contains(domain) || domain.contains(keyword)) {
+                    List<String> children = entry.getValue();
+                    for (String child : children) {
+                        List<Achievement> childMatches = achievementRepository.findPublishedByKeyword(child);
+                        for (Achievement a : childMatches) {
+                             if (isFieldMismatch(a, effectiveField)) continue;
+                             // Score child matches slightly less but still significant
+                             scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore((int)(SCORE_KEYWORD_MATCH * 0.8));
+                        }
+                        // Also add to related keywords for frontend
+                        if (!relatedKeywords.contains(child)) {
+                            relatedKeywords.add(child);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3.3 Related Keyword Match
+        for (Technology t : relatedTechs) {
+            String relatedKey = t.getName();
+            if (relatedKey != null && !relatedKey.trim().isEmpty() && !relatedKey.equals(keyword)) {
+                List<Achievement> found = achievementRepository.findPublishedByKeyword(relatedKey);
+                for (Achievement a : found) {
+                    if (isFieldMismatch(a, effectiveField)) continue;
+                    scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(SCORE_RELATED_MATCH);
+                }
+            }
+        }
+        
+        // 3.4 Text Similarity & Price Logic (Base Scoring)
+        for (ScoredAchievement sa : scoredMatches.values()) {
+            Achievement a = sa.getAchievement();
+            String title = a.getTitle();
+            String desc = a.getDescription();
+            
+            // Double Check Field Mismatch (Penalize heavily if somehow slipped through)
+            if (isFieldMismatch(a, effectiveField)) {
+                sa.setScore(0); 
+                continue;
+            }
+            
+            if (keyword != null && !keyword.isEmpty()) {
+                 if (title != null && title.contains(keyword)) sa.addScore(SCORE_TEXT_TITLE_MATCH);
+                 if (desc != null && desc.contains(keyword)) sa.addScore(SCORE_TEXT_DESC_MATCH);
+            }
+            
+            // Price Logic
+            if (budget != null && a.getPrice() != null && a.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                double priceVal = a.getPrice().doubleValue();
+                double budgetVal = budget.doubleValue();
+                double diff = Math.abs(priceVal - budgetVal);
+                double ratio = diff / budgetVal;
+                
+                if (ratio <= 0.2) sa.addScore(SCORE_PRICE_EXCELLENT);
+                else if (ratio <= 0.5) sa.addScore(SCORE_PRICE_GOOD);
+                else if (priceVal > budgetVal * 1.5) sa.addScore(SCORE_PRICE_PENALTY);
+            }
+        }
+
+        // 4. AI Reranking (The "Strict Filter")
+        // Select top candidates for AI evaluation
+        List<ScoredAchievement> topCandidates = scoredMatches.values().stream()
+                .filter(s -> s.getScore() > 0)
+                .sorted((a, b) -> b.getScore() - a.getScore())
+                .limit(50) // Limit to top 50 for AI processing
+                .collect(Collectors.toList());
+
+        List<Achievement> candidateEntities = topCandidates.stream()
+                .map(ScoredAchievement::getAchievement)
+                .collect(Collectors.toList());
+
+        if (!candidateEntities.isEmpty()) {
+            Map<Long, Double> aiScores = aiService.evaluateMatches(demandDescription, profile, candidateEntities);
+            
+            // Update scores based on AI evaluation
+            for (ScoredAchievement sa : topCandidates) {
+                Double aiScore = aiScores.get(sa.getAchievement().getId());
+                if (aiScore != null) {
+                    if (aiScore < 10) {
+                        sa.setScore(0); // Eliminate
+                    } else {
+                        // Blend AI score (weight 2.0)
+                        sa.addScore((int)(aiScore * 2.0)); 
+                    }
+                }
+            }
+        }
+
+        // 5. Final Sort and Select
+        List<ScoredAchievement> allScored = new ArrayList<>(scoredMatches.values());
+        allScored = allScored.stream()
+                .filter(s -> s.getScore() > 0)
+                .collect(Collectors.toList());
+        allScored.sort((a, b) -> b.getScore() - a.getScore());
+
+        // Return top 10 relevant ones
+        List<Map<String, Object>> matches = new ArrayList<>();
+        for (int i=0; i<Math.min(allScored.size(), 10); i++) {
+            ScoredAchievement sa = allScored.get(i);
+            Map<String, Object> map = new HashMap<>();
+            Achievement a = sa.getAchievement();
+            map.put("id", a.getId());
+            map.put("title", a.getTitle());
+            map.put("description", a.getDescription());
+            map.put("field", a.getField());
+            map.put("maturity", a.getMaturity());
+            map.put("price", a.getPrice());
+            map.put("ownerId", a.getOwnerId());
+            map.put("status", a.getStatus() != null ? a.getStatus().toString() : "PUBLISHED");
+            map.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : new Date().toString());
+            
+            // Add match level indicator
+            map.put("matchLevel", sa.getScore() > 80 ? "HIGH" : (sa.getScore() > 50 ? "MEDIUM" : "LOW"));
+            
+            // Add explanation fields for traceability
+            Map<String, Object> explanation = new HashMap<>();
+            explanation.put("keyword", keyword);
+            explanation.put("domain", effectiveField);
+            explanation.put("matchingRules", generateMatchingRules(a, keyword, effectiveField));
+            explanation.put("graphPath", extractGraphPath(a, keyword));
+            explanation.put("summary", generateMatchSummary(a, keyword, sa.getScore()));
+            explanation.put("degraded", false); // Mark as non-degraded since we have real evidence
+            map.put("explanation", explanation);
+            
+            matches.add(map);
+        }
+        
+        // 5.5 Augment matches with Evaluation Metrics
+        for (Map<String, Object> match : matches) {
+            Long achId = (Long) match.get("id");
+            Optional<EvaluationMetrics> metrics = evaluationMetricsRepository.findByAchievementId(achId);
+            if (metrics.isPresent()) {
+                EvaluationMetrics m = metrics.get();
+                Map<String, Object> eval = new HashMap<>();
+                eval.put("maturity", m.getTechnologyMaturity());
+                eval.put("innovation", m.getInnovationLevel());
+                eval.put("value", m.getEconomicValue());
+                eval.put("cost", m.getCostEfficiency());
+                eval.put("analysis", m.getAnalysisReport());
+                match.put("evaluation", eval);
+            } else {
+                // Default fallback if not yet analyzed
+                Map<String, Object> eval = new HashMap<>();
+                eval.put("maturity", 60);
+                eval.put("innovation", 60);
+                eval.put("value", 60);
+                eval.put("cost", 60);
+                eval.put("analysis", "待评估");
+                match.put("evaluation", eval);
+            }
+        }
+        
+        result.put("matches", matches);
+
+        // 6. Recommendations (Guess You Like)
+        List<Map<String, Object>> recommendations = new ArrayList<>();
+        
+        // Find achievements in the same field but NOT in the top strict matches
+        // Base recommendation on Field + Popularity (Mock popularity by ID for now or random)
+        if (effectiveField != null && !effectiveField.isEmpty()) {
+            List<Achievement> recCandidates = achievementRepository.findByFieldContainingAndStatus(effectiveField, Achievement.Status.PUBLISHED);
+            
+            // Exclude already matched
+            Set<Long> matchedIds = matches.stream().map(m -> (Long)m.get("id")).collect(Collectors.toSet());
+            
+            recCandidates = recCandidates.stream()
+                .filter(a -> !matchedIds.contains(a.getId()))
+                .limit(6) // Limit recommendations
+                .collect(Collectors.toList());
+                
+            for (Achievement a : recCandidates) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", a.getId());
+                map.put("title", a.getTitle());
+                map.put("description", a.getDescription());
+                map.put("field", a.getField());
+                map.put("maturity", a.getMaturity());
+                map.put("price", a.getPrice());
+                map.put("status", a.getStatus() != null ? a.getStatus().toString() : "PUBLISHED");
+                map.put("score", 50); // Base score for domain match
+                recommendations.add(map);
+            }
+        }
+        
+        result.put("recommendations", recommendations);
+        result.put("relatedKeywords", relatedKeywords);
+        
+        return result;
+    }
+
+    private boolean isFieldMismatch(Achievement a, String effectiveField) {
+        if (effectiveField == null || effectiveField.isEmpty()) return false;
+        if (a.getField() == null) return true;
+        // Simple containment check (can be improved with semantic similarity)
+        return !a.getField().contains(effectiveField) && !effectiveField.contains(a.getField());
+    }
+
+    private void addScore(Map<Long, ScoredAchievement> map, Achievement a, int points, String filterField) {
+        // Hard Filter Check
+        if (isFieldMismatch(a, filterField)) {
+            return;
+        }
+        map.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0)).addScore(points);
+    }
+
+    /**
+     * @brief 基于领域层级规则构建知识图谱，不依赖 AI
+     * @param profile 匹配画像
+     * @param keyword 关键词
+     * @return JsonNode 图谱 JSON
+     */
+    private JsonNode buildRuleBasedGraph(MatchingProfile profile, String keyword) {
+        ObjectNode graph = objectMapper.createObjectNode();
+        ArrayNode nodes = objectMapper.createArrayNode();
+        ArrayNode relationships = objectMapper.createArrayNode();
+        
+        // Root node - 用户需求
+        String rootId = "root";
+        String rootLabel = keyword != null && !keyword.isEmpty() ? keyword : "用户需求";
+        ObjectNode rootNode = objectMapper.createObjectNode();
+        rootNode.put("id", rootId);
+        rootNode.put("label", rootLabel);
+        rootNode.put("type", "Demand");
+        nodes.add(rootNode);
+        
+        // Category node - 一级领域
+        String field = profile.getField();
+        if (field != null && !field.isEmpty()) {
+            String catId = "cat_" + field;
+            ObjectNode catNode = objectMapper.createObjectNode();
+            catNode.put("id", catId);
+            catNode.put("label", field);
+            catNode.put("type", "Category");
+            nodes.add(catNode);
+            
+            // BELONGS_TO: root -> category
+            ObjectNode rel1 = objectMapper.createObjectNode();
+            rel1.put("source", rootId);
+            rel1.put("target", catId);
+            rel1.put("type", "BELONGS_TO");
+            relationships.add(rel1);
+            
+            // SubCategory node - 二级细分领域
+            String subField = profile.getSubField();
+            if (subField != null && !subField.isEmpty()) {
+                String subId = "sub_" + subField;
+                ObjectNode subNode = objectMapper.createObjectNode();
+                subNode.put("id", subId);
+                subNode.put("label", subField);
+                subNode.put("type", "SubCategory");
+                nodes.add(subNode);
+                
+                ObjectNode rel2 = objectMapper.createObjectNode();
+                rel2.put("source", catId);
+                rel2.put("target", subId);
+                rel2.put("type", "INCLUDES");
+                relationships.add(rel2);
+                
+                // Application node - 应用场景
+                String scenario = profile.getApplicationScenario();
+                if (scenario != null && !scenario.isEmpty()) {
+                    String appId = "app_" + scenario;
+                    ObjectNode appNode = objectMapper.createObjectNode();
+                    appNode.put("id", appId);
+                    appNode.put("label", scenario);
+                    appNode.put("type", "Application");
+                    nodes.add(appNode);
+                    
+                    ObjectNode rel3 = objectMapper.createObjectNode();
+                    rel3.put("source", subId);
+                    rel3.put("target", appId);
+                    rel3.put("type", "APPLIED_IN");
+                    relationships.add(rel3);
+                }
+            }
+            
+            // 扩展领域层级子节点
+            if (com.cloudbridge.util.DomainHierarchyUtil.DOMAIN_HIERARCHY.containsKey(field)) {
+                java.util.List<String> children = com.cloudbridge.util.DomainHierarchyUtil.DOMAIN_HIERARCHY.get(field);
+                for (String child : children) {
+                    if (subField != null && child.contains(subField)) continue; // skip if already covered
+                    String childId = "child_" + child;
+                    ObjectNode childNode = objectMapper.createObjectNode();
+                    childNode.put("id", childId);
+                    childNode.put("label", child);
+                    childNode.put("type", "Technology");
+                    nodes.add(childNode);
+                    
+                    ObjectNode rel = objectMapper.createObjectNode();
+                    rel.put("source", catId);
+                    rel.put("target", childId);
+                    rel.put("type", "INCLUDES");
+                    relationships.add(rel);
+                }
+            }
+        }
+        
+        graph.set("nodes", nodes);
+        graph.set("relationships", relationships);
+        return graph;
+    }
+
+    private void augmentGraphWithAchievements(JsonNode graphNode, Map<Long, ScoredAchievement> scoredMatches, String filterField) {
+        if (graphNode == null || !graphNode.has("nodes")) return;
+
+        ArrayNode nodes = (ArrayNode) graphNode.get("nodes");
+        JsonNode relationshipsNode = graphNode.get("relationships");
+        ArrayNode relationships;
+
+        if (relationshipsNode == null || relationshipsNode.isNull()) {
+             if (graphNode instanceof ObjectNode) {
+                relationships = ((ObjectNode) graphNode).putArray("relationships");
+             } else {
+                return;
+             }
+        } else {
+            relationships = (ArrayNode) relationshipsNode;
+        }
+
+        Set<String> existingIds = new HashSet<>();
+        // Pre-populate existing IDs to avoid duplicates
+        for (JsonNode n : nodes) {
+            if (n.has("id")) existingIds.add(n.get("id").asText());
+        }
+
+        // Strategy: Only connect Achievements to "Leaf" nodes (SubCategories or Specific Technologies)
+        // Avoid connecting to "Root" or high-level categories if possible.
+        
+        // --- NEW HIERARCHY LOGIC START ---
+        // If the graph contains a broad category node (e.g., "生物医药"), check if we have achievements 
+        // that match its children (e.g., "细胞") but "细胞" isn't in the graph yet.
+        // If so, inject "细胞" node and connect it.
+        
+        List<JsonNode> nodesToAdd = new ArrayList<>();
+        List<ObjectNode> relsToAdd = new ArrayList<>();
+        
+        for (JsonNode node : nodes) {
+            String label = node.has("label") ? node.get("label").asText() : "";
+            String nodeId = node.has("id") ? node.get("id").asText() : "";
+            
+            // Check if this node is a known parent domain
+            for (Map.Entry<String, List<String>> entry : DomainHierarchyUtil.DOMAIN_HIERARCHY.entrySet()) {
+                String domain = entry.getKey();
+                if (label.contains(domain) || domain.contains(label)) {
+                    List<String> children = entry.getValue();
+                    for (String child : children) {
+                        // Check if we have achievements for this child
+                        List<Achievement> childMatches = achievementRepository.findPublishedByKeyword(child);
+                        if (childMatches.isEmpty()) continue;
+                        
+                        // Check if child node already exists in graph (simple check by label)
+                        boolean childExists = false;
+                        String childNodeId = null;
+                        for (JsonNode n : nodes) {
+                            if (n.has("label") && n.get("label").asText().contains(child)) {
+                                childExists = true;
+                                childNodeId = n.get("id").asText();
+                                break;
+                            }
+                        }
+                        
+                        // If child node doesn't exist, create it
+                        if (!childExists) {
+                            childNodeId = "node_" + UUID.randomUUID().toString().substring(0, 8);
+                            ObjectNode childNode = objectMapper.createObjectNode();
+                            childNode.put("id", childNodeId);
+                            childNode.put("label", child);
+                            childNode.put("type", "SubCategory"); // Mark as subcategory
+                            nodesToAdd.add(childNode);
+                            
+                            // Connect Parent -> Child
+                            ObjectNode rel = objectMapper.createObjectNode();
+                            rel.put("source", nodeId);
+                            rel.put("target", childNodeId);
+                            rel.put("type", "INCLUDES");
+                            relsToAdd.add(rel);
+                            
+                            existingIds.add(childNodeId); // Track ID
+                        }
+                        
+                        // Now connect matching achievements to this CHILD node (whether new or existing)
+                        // We will let the main loop below handle connections if the node exists, 
+                        // BUT since we just added it or it might be skipped by main loop logic, let's force connect here for new nodes.
+                        // Actually, better to just add the node to 'nodes' list and let the main loop process it?
+                        // No, main loop iterates over original 'nodes'. We need to process these new nodes too.
+                        
+                        // Let's connect achievements to this child node directly here
+                        int count = 0;
+                        for (Achievement a : childMatches) {
+                             if (filterField != null && !filterField.isEmpty()) {
+                                boolean match = (a.getField() != null && a.getField().contains(filterField)) || (a.getField() != null && filterField.contains(a.getField()));
+                                if (!match) continue;
+                             }
+                             if (count >= 3) break;
+                             
+                             String achId = "ach_" + a.getId();
+                             if (!existingIds.contains(achId)) {
+                                 ObjectNode achNode = objectMapper.createObjectNode();
+                                 achNode.put("id", achId);
+                                 String displayTitle = a.getTitle().length() > 6 ? a.getTitle().substring(0, 6) + "..." : a.getTitle();
+                                 achNode.put("label", displayTitle);
+                                 achNode.put("fullTitle", a.getTitle());
+                                 achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
+                                 achNode.put("type", "Achievement");
+                                 achNode.put("isLeaf", true);
+                                 
+                                 nodesToAdd.add(achNode);
+                                 existingIds.add(achId);
+                                 
+                                 ObjectNode rel = objectMapper.createObjectNode();
+                                 rel.put("source", childNodeId);
+                                 rel.put("target", achId);
+                                 rel.put("type", "MATCHES");
+                                 relsToAdd.add(rel);
+                                 
+                                 count++;
+                             }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Add all new nodes and rels
+        nodes.addAll(nodesToAdd);
+        relationships.addAll(relsToAdd);
+        // --- NEW HIERARCHY LOGIC END ---
+
+        for (JsonNode node : nodes) {
+            String label = node.has("label") ? node.get("label").asText() : "";
+            String type = node.has("type") ? node.get("type").asText() : "";
+            String nodeId = node.has("id") ? node.get("id").asText() : "";
+            
+            // HIERARCHICAL LOGIC: 
+            // Only attach achievements to specific/leaf nodes (e.g., "Technology", "InferredTech", "SubCategory").
+            // Skip broad "Category" nodes unless no specific nodes exist.
+            boolean isLeafNode = type.equalsIgnoreCase("Technology") || type.equalsIgnoreCase("InferredTech") || type.equalsIgnoreCase("SubCategory");
+            
+            if (label.length() > 1 && isLeafNode) {
+                // Find achievements matching this specific node label
+                List<Achievement> matches = achievementRepository.findPublishedByKeyword(label);
+                
+                int count = 0;
+                for (Achievement a : matches) {
+                    // Check Filter
+                    if (filterField != null && !filterField.isEmpty()) {
+                        // Loose check: field contains filter OR filter contains field
+                        boolean match = (a.getField() != null && a.getField().contains(filterField)) || (a.getField() != null && filterField.contains(a.getField()));
+                        if (!match) continue;
+                    }
+
+                    if (count >= 3) break; // Max 3 achievements per node to reduce clutter
+                    
+                    String achId = "ach_" + a.getId();
+                    
+                    // Add score to the main matching logic
+                    ScoredAchievement scored = scoredMatches.computeIfAbsent(a.getId(), k -> new ScoredAchievement(a, 0));
+                    scored.addScore(SCORE_GRAPH_MATCH);
+
+                    // GRAPH VISUALIZATION THRESHOLD: 
+                    // Only visualize if it's a decent match to keep graph clean
+                    boolean isStrongMatch = scored.getScore() >= 30; 
+                    
+                    if (isStrongMatch) {
+                        if (!existingIds.contains(achId)) {
+                            ObjectNode achNode = objectMapper.createObjectNode();
+                            achNode.put("id", achId);
+                            // Truncate title for visual clarity
+                            String displayTitle = a.getTitle().length() > 6 ? a.getTitle().substring(0, 6) + "..." : a.getTitle();
+                            achNode.put("label", displayTitle);
+                            achNode.put("fullTitle", a.getTitle());
+                            achNode.put("price", a.getPrice() != null ? a.getPrice().toString() : "面议");
+                            achNode.put("type", "Achievement");
+                            // Add specific styling property for frontend if needed
+                            achNode.put("isLeaf", true); 
+                            
+                            nodes.add(achNode);
+                            existingIds.add(achId);
+                            
+                            // Create edge: Node -> Achievement
+                            ObjectNode rel = objectMapper.createObjectNode();
+                            rel.put("source", nodeId);
+                            rel.put("target", achId);
+                            rel.put("type", "MATCHES");
+                            relationships.add(rel);
+                        }
+                        
+                        count++;
+                    }
+                }
+            }
+        }
+    }
+
+    private String fallbackExtractKeyword(String text) {
+        if (text == null) return "";
+        String[] parts = text.split("\\s+");
+        if (parts.length > 0 && parts[0].length() > 0 && parts[0].length() < 10) {
+            return parts[0];
+        }
+        return text.substring(0, Math.min(text.length(), 4));
+    }
+
+    private List<String> generateMatchingRules(Achievement a, String keyword, String field) {
+        List<String> rules = new ArrayList<>();
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            if (a.getTitle() != null && a.getTitle().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("标题包含关键词'" + keyword + "'");
+            }
+            if (a.getDescription() != null && a.getDescription().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("描述包含关键词'" + keyword + "'");
+            }
+        }
+        
+        if (field != null && !field.isEmpty() && a.getField() != null) {
+            if (a.getField().toLowerCase().contains(field.toLowerCase()) || 
+                field.toLowerCase().contains(a.getField().toLowerCase())) {
+                rules.add("领域匹配: " + a.getField());
+            }
+        }
+        
+        if (a.getTags() != null && !a.getTags().isEmpty()) {
+            if (keyword != null && a.getTags().toLowerCase().contains(keyword.toLowerCase())) {
+                rules.add("标签包含关键词'" + keyword + "'");
+            }
+        }
+        
+        if (rules.isEmpty()) {
+            rules.add("基于语义相似度匹配");
+        }
+        
+        return rules;
+    }
+
+    private String extractGraphPath(Achievement a, String keyword) {
+        StringBuilder path = new StringBuilder();
+        path.append("需求解析 -> ");
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            path.append("关键词[").append(keyword).append("] -> ");
+        }
+        
+        if (a.getField() != null) {
+            path.append("领域[").append(a.getField()).append("] -> ");
+        }
+        
+        path.append("成果[").append(a.getTitle() != null ? a.getTitle() : "未知").append("]");
+        
+        return path.toString();
+    }
+
+    private String generateMatchSummary(Achievement a, String keyword, int score) {
+        StringBuilder summary = new StringBuilder();
+        
+        if (score >= 80) {
+            summary.append("高匹配度：");
+        } else if (score >= 50) {
+            summary.append("中匹配度：");
+        } else {
+            summary.append("初步匹配：");
+        }
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            summary.append("成果标题或描述包含核心关键词'").append(keyword).append("'");
+            if (a.getField() != null) {
+                summary.append("，所属领域为").append(a.getField());
+            }
+        } else {
+            summary.append("基于领域匹配推荐该成果");
+        }
+        
+        return summary.toString();
+    }
+}

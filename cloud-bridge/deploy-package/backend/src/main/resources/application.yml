@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: cloud-bridge-backend
+
+  # ===== 裸机部署：默认使用 H2 嵌入数据库，零配置启动 =====
+  # 如需切换到 MySQL/PostgreSQL，在 .env 中设置 SPRING_DATASOURCE_URL 等环境变量
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/cloud_bridge;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 100MB
+
+  # ===== 裸机部署：排除外部中间件的自动配置 =====
+  # 这些依赖仍在 classpath 上，但 Spring Boot 不会尝试连接
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jReactiveDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.neo4j.Neo4jReactiveRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.neo4j.Neo4jHealthContributorAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.neo4j.Neo4jReactiveHealthContributorAutoConfiguration
+      - org.springframework.boot.autoconfigure.neo4j.Neo4jAutoConfiguration
+
+  # ===== 以下配置保留但不会被使用（无对应 Bean） =====
+  data:
+    elasticsearch:
+      client:
+        reactive:
+          endpoints: ${SPRING_ELASTICSEARCH_URIS:localhost:9200}
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: 6379
+      repositories:
+        enabled: false
+    neo4j:
+      repositories:
+        enabled: false
+  neo4j:
+    uri: ${SPRING_NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${SPRING_NEO4J_AUTHENTICATION_USERNAME:neo4j}
+      password: ${SPRING_NEO4J_AUTHENTICATION_PASSWORD:password}
+
+# ===== Elasticsearch 地址（SearchService 自带内存降级，无需 ES 也可运行） =====
+es:
+  url: ${ES_URL:http://localhost:9200}
+
+# ===== AI 模型配置：MoMA 平台 GLM-5.2 =====
+# 实际 key 在 deploy/.env 中设置，通过环境变量注入
+ai:
+  api:
+    url: ${AI_API_URL:https://moma.cmecloud.cn/v1/chat/completions}
+    key: ${AI_API_KEY:}
+    model: ${AI_API_MODEL:ZHIPU/GLM-5.2}
+    embedding-url: ${AI_EMBEDDING_URL:https://moma.cmecloud.cn/v1/embeddings}
+    embedding-key: ${AI_EMBEDDING_KEY:}
+    embedding-model: ${AI_EMBEDDING_MODEL:ZHIPU/GLM-5.2}
+  agent:
+    max-iterations: 8
+    timeout-seconds: 120
+    model: ${AI_AGENT_MODEL:ZHIPU/GLM-5.2}
+    temperature: 0.1
+    max-tokens: 2048
+
+file:
+  upload-dir: uploads
+
+server:
+  port: 8080
+
+logging:
+  file:
+    name: backend.log
+  level:
+    root: INFO
+    com.cloudbridge: DEBUG
+    org.neo4j: OFF
+    org.springframework.data.neo4j: OFF
