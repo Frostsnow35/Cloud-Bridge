@@ -9,5 +9,5 @@ else
     echo "Data directory already has content, skipping initial data copy."
 fi
 
-echo "Starting Spring Boot application..."
-exec java -jar app.jar
+echo "Starting Spring Boot application with JAVA_OPTS: $JAVA_OPTS"
+exec java $JAVA_OPTS -jar app.jar
