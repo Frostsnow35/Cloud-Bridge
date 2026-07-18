@@ -1,0 +1,452 @@
+[
+  {
+    "id": 1,
+    "name": "一种便携式核酸检测仪成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026408985.X",
+    "holder": "创新生物医药公司",
+    "field": "生物医药",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 2,
+    "name": "一种3D打印人工骨成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026758872.X",
+    "holder": "医科大学附属医院",
+    "field": "生物医药",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 3,
+    "name": "一种干细胞培养基成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026888447.X",
+    "holder": "医科大学附属医院",
+    "field": "生物医药",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 4,
+    "name": "一种抗体偶联药物(ADC)成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026464133.X",
+    "holder": "医科大学附属医院",
+    "field": "生物医药",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 5,
+    "name": "一种PD-1/L1抗体药物成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026844895.X",
+    "holder": "创新生物医药公司",
+    "field": "生物医药",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 6,
+    "name": "一种纳米陶瓷涂层成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026327791.X",
+    "holder": "理工大学材料学院",
+    "field": "新材料",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 7,
+    "name": "一种液态金属热界面材料成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026492793.X",
+    "holder": "理工大学材料学院",
+    "field": "新材料",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 8,
+    "name": "一种碳纤维复合材料成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026247616.X",
+    "holder": "理工大学材料学院",
+    "field": "新材料",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 9,
+    "name": "一种光刻胶成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026807421.X",
+    "holder": "航空航天材料所",
+    "field": "新材料",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 10,
+    "name": "一种气凝胶绝热毡成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026172294.X",
+    "holder": "理工大学材料学院",
+    "field": "新材料",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 11,
+    "name": "一种智慧储能BMS系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026794770.X",
+    "holder": "氢能工程中心",
+    "field": "新能源",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 12,
+    "name": "一种地热能发电技术成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026487848.X",
+    "holder": "太阳能光伏实验室",
+    "field": "新能源",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 13,
+    "name": "一种智慧储能BMS系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026329721.X",
+    "holder": "新能源技术研究院",
+    "field": "新能源",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 14,
+    "name": "一种钙钛矿太阳能电池成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026859056.X",
+    "holder": "氢能工程中心",
+    "field": "新能源",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 15,
+    "name": "一种智慧储能BMS系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026587923.X",
+    "holder": "储能技术研究中心",
+    "field": "新能源",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 16,
+    "name": "一种语音识别转写引擎成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026351183.X",
+    "holder": "人工智能研究院",
+    "field": "新一代信息技术",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 17,
+    "name": "一种安防人脸识别系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026388195.X",
+    "holder": "大数据创新中心",
+    "field": "新一代信息技术",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 18,
+    "name": "一种自动驾驶感知系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026299004.X",
+    "holder": "人工智能研究院",
+    "field": "新一代信息技术",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 19,
+    "name": "一种安防人脸识别系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026935876.X",
+    "holder": "大数据创新中心",
+    "field": "新一代信息技术",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 20,
+    "name": "一种安防人脸识别系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026374156.X",
+    "holder": "大数据创新中心",
+    "field": "新一代信息技术",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 21,
+    "name": "一种激光焊接工作站成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026941535.X",
+    "holder": "机器人工程中心",
+    "field": "智能制造",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 22,
+    "name": "一种工业互联网平台成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026689012.X",
+    "holder": "机器人工程中心",
+    "field": "智能制造",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 23,
+    "name": "一种机器视觉引导系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026619434.X",
+    "holder": "工业自动化研究所",
+    "field": "智能制造",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 24,
+    "name": "一种激光焊接工作站成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026708763.X",
+    "holder": "机器人工程中心",
+    "field": "智能制造",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 25,
+    "name": "一种机器视觉引导系统成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026710429.X",
+    "holder": "工业自动化研究所",
+    "field": "智能制造",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 26,
+    "name": "一种燃气轮机叶片成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026131599.X",
+    "holder": "船舶工业集团",
+    "field": "高端装备",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 27,
+    "name": "一种盾构机主轴承成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026665552.X",
+    "holder": "机械科学研究总院",
+    "field": "高端装备",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 28,
+    "name": "一种深海潜水器载人舱成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026469703.X",
+    "holder": "重型机械研究院",
+    "field": "高端装备",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 29,
+    "name": "一种海洋钻井平台成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026622765.X",
+    "holder": "机械科学研究总院",
+    "field": "高端装备",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 30,
+    "name": "一种核电站压力容器成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026371655.X",
+    "holder": "船舶工业集团",
+    "field": "高端装备",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 31,
+    "name": "一种餐厨垃圾资源化成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026238191.X",
+    "holder": "环境科学研究院",
+    "field": "绿色环保",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 32,
+    "name": "一种餐厨垃圾资源化成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026570072.X",
+    "holder": "生态环境工程中心",
+    "field": "绿色环保",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 33,
+    "name": "一种除尘脱硫脱硝一体化成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026640725.X",
+    "holder": "碳中和研究中心",
+    "field": "绿色环保",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 34,
+    "name": "一种餐厨垃圾资源化成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026837210.X",
+    "holder": "碳中和研究中心",
+    "field": "绿色环保",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 35,
+    "name": "一种河道水质在线监测成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026320366.X",
+    "holder": "生态环境工程中心",
+    "field": "绿色环保",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 36,
+    "name": "一种动漫动作捕捉成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026221967.X",
+    "holder": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 37,
+    "name": "一种动漫动作捕捉成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026795111.X",
+    "holder": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 38,
+    "name": "一种虚拟拍摄影棚成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026425699.X",
+    "holder": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 39,
+    "name": "一种虚拟拍摄影棚成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026196894.X",
+    "holder": "美术学院设计中心",
+    "field": "数字创意",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 40,
+    "name": "一种沉浸式光影艺术展成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026314742.X",
+    "holder": "数字创意产业园",
+    "field": "数字创意",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 41,
+    "name": "一种氢燃料燃气轮机成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026439619.X",
+    "holder": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 42,
+    "name": "一种商业航天运载火箭成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026533727.X",
+    "holder": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 43,
+    "name": "一种合成生物学工厂成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026907473.X",
+    "holder": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 44,
+    "name": "一种脑机接口(BCI)成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026788531.X",
+    "holder": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  },
+  {
+    "id": 45,
+    "name": "一种6G太赫兹通信成熟技术的方法",
+    "type": "发明专利",
+    "number": "ZL2026398693.X",
+    "holder": "合成生物学中心",
+    "field": "未来产业",
+    "status": "AUTHORIZED",
+    "applyDate": "2024-06-01"
+  }
+]
