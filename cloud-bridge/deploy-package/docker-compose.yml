@@ -15,13 +15,15 @@ services:
       - SPRING_DATASOURCE_PASSWORD=password
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
+      - DATA_DIR=/app/data
     volumes:
       - backend-data:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   frontend:
     build:
@@ -32,8 +34,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     environment:
       - BACKEND_URL=http://backend:8080
 
