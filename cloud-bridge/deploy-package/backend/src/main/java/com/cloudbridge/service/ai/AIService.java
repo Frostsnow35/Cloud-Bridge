@@ -823,18 +823,35 @@ public class AIService {
         String safeMsg = message != null ? message.replace("%", "%%") : "";
 
         String prompt = String.format(
-            "你是云转桥科技成果转化平台的智能助手，职责是解答关于平台的咨询问题。\n\n" +
-            "**平台功能**：\n" +
-            "1. 成果大厅 —— 浏览和搜索各类科技成果\n" +
-            "2. 智能匹配 —— 描述技术需求，AI 精准匹配科技成果和配套资源\n" +
-            "3. 政策库 —— 查询产业扶持政策和创新补贴\n" +
-            "4. 需求发布 —— 发布企业技术需求\n" +
-            "5. 供需大厅 —— 浏览技术供给和需求信息\n\n" +
+            "你是云转桥科技成果转化平台的智能助手，职责是解答关于平台的咨询问题，并提供页面导航指引。\n\n" +
+            "**平台功能与页面路由**：\n" +
+            "1. 成果大厅 —— /achievements (浏览和搜索各类科技成果)\n" +
+            "2. 智能匹配 —— /match (描述技术需求，AI 精准匹配)\n" +
+            "3. 政策库 —— /libraries/policies (查询产业扶持政策)\n" +
+            "4. 需求发布 —— /needs/publish (发布企业技术需求)\n" +
+            "5. 需求大厅 —— /needs (浏览技术需求)\n" +
+            "6. 企业库 —— /libraries/enterprises\n" +
+            "7. 专家库 —— /libraries/experts\n" +
+            "8. 设备库 —— /libraries/equipments\n" +
+            "9. 专利库 —— /libraries/patents\n" +
+            "10. 资金库 —— /libraries/funds\n" +
+            "11. 个人中心 —— /profile\n" +
+            "12. 消息中心 —— /messages\n" +
+            "13. 首页 —— /\n\n" +
+            "**任务**：\n" +
+            "1. 判断用户意图（Intent）：\n" +
+            "   - NAVIGATE: 用户想要跳转到某个功能页面\n" +
+            "   - GUIDANCE: 用户询问如何使用平台功能（如\"怎么发布需求\"）\n" +
+            "   - CHAT: 普通闲聊、问候或非业务问题\n" +
+            "2. 生成回复（Reply）：亲切、专业的文本回复\n" +
+            "3. 生成操作（Action）：仅在NAVIGATE时需要，包含跳转路径\n\n" +
             "**回复规则**：\n" +
             "1. 如果用户问你是谁或打招呼，简单自我介绍并说明平台功能\n" +
-            "2. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面自行操作，不代为匹配\n" +
-            "3. 回复简洁，3-5句话，纯文本\n" +
-            "4. 需要引导时使用友好语气，如\"您可以前往「智能匹配」页面...\"\n\n" +
+            "2. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面\n" +
+            "3. 如果用户询问具体功能操作（如\"怎么看政策\"），提供操作指引并返回导航路径\n" +
+            "4. 回复简洁，3-5句话\n\n" +
+            "**输出格式**（严格返回JSON字符串，不要包含Markdown标记）：\n" +
+            "{\"intent\": \"NAVIGATE|GUIDANCE|CHAT\", \"reply\": \"回复内容\", \"action\": {\"type\": \"NAVIGATE\", \"path\": \"/目标路径\"}}\n\n" +
             "用户消息：\"%s\"", safeMsg
         );
 
@@ -842,14 +859,14 @@ public class AIService {
         request.setModel(modelName);
         request.setTemperature(0.7);
         request.setMessages(Arrays.asList(
-            new AIRequest.Message("system", "你是云转桥平台助手。只回答问题，不执行匹配。引导用户自行前往智能匹配页面。"),
+            new AIRequest.Message("system", "你是云转桥平台智能助手。只回答问题，不执行匹配。根据用户问题返回结构化JSON。"),
             new AIRequest.Message("user", prompt)
         ));
 
         try {
             return callAI(request);
         } catch (Exception e) {
-            return "你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。";
+            return "{\"intent\": \"CHAT\", \"reply\": \"你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。\", \"action\": null}";
         }
     }
 

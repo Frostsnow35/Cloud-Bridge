@@ -33,7 +33,14 @@
             <div class="avatar" v-if="msg.role === 'ai'">
               <el-icon><Cpu /></el-icon>
             </div>
-            <div class="content" v-if="msg.role === 'ai'" v-html="renderMarkdown(msg.text)"></div>
+            <div class="content" v-if="msg.role === 'ai'">
+              <div v-html="renderMarkdown(msg.text)"></div>
+              <div v-if="msg.action" class="nav-action">
+                <el-button type="primary" size="small" @click="navigateTo(msg.action.path)">
+                  点击跳转 → {{ getPathName(msg.action.path) }}
+                </el-button>
+              </div>
+            </div>
             <div class="content" v-else>{{ msg.text }}</div>
           </div>
           <div v-if="isWaiting" class="message ai waiting-message">
@@ -130,9 +137,15 @@ onUnmounted(() => {
   stopWaiting()
 })
 
+interface Action {
+  type: string;
+  path: string;
+}
+
 interface Message {
   role: 'user' | 'ai';
   text: string;
+  action?: Action;
 }
 
 const welcomeMsg = '你好！我是云转桥智能助手，可以帮你了解平台功能和解答使用问题。如需精准匹配科技成果，请前往**智能匹配**页面操作。'
@@ -148,6 +161,32 @@ const toggleChat = () => {
 const goToSmartMatch = () => {
   toggleChat()
   router.push('/smart-match')
+}
+
+const navigateTo = (path: string) => {
+  toggleChat()
+  router.push(path)
+  ElMessage.success('已为您跳转到目标页面')
+}
+
+const getPathName = (path: string): string => {
+  const pathNames: Record<string, string> = {
+    '/achievements': '成果大厅',
+    '/match': '智能匹配',
+    '/libraries/policies': '政策库',
+    '/needs/publish': '发布需求',
+    '/needs': '需求大厅',
+    '/libraries/enterprises': '企业库',
+    '/libraries/experts': '专家库',
+    '/libraries/equipments': '设备库',
+    '/libraries/patents': '专利库',
+    '/libraries/funds': '资金库',
+    '/profile': '个人中心',
+    '/messages': '消息中心',
+    '/': '首页',
+    '/smart-match': '智能匹配'
+  }
+  return pathNames[path] || path
 }
 
 const resetChat = async () => {
@@ -208,6 +247,7 @@ const sendMessage = async () => {
 
     const decoder = new TextDecoder()
     let buffer = ''
+    let fullResponse = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -232,7 +272,7 @@ const sendMessage = async () => {
               sessionId.value = parsed.sessionId
             }
           } catch (e) {
-            // 普通 token 文本
+            fullResponse += data
             streamBuffer.value += data
             messages.value[aiMsgIndex].text += data
           }
@@ -241,7 +281,22 @@ const sendMessage = async () => {
       scrollToBottom()
     }
 
-    // 流结束
+    // 流结束，尝试解析完整响应为 JSON
+    try {
+      const parsedResponse = JSON.parse(fullResponse)
+      if (parsedResponse.reply) {
+        messages.value[aiMsgIndex].text = parsedResponse.reply
+      }
+      if (parsedResponse.action && parsedResponse.action.type === 'NAVIGATE' && parsedResponse.action.path) {
+        messages.value[aiMsgIndex].action = {
+          type: parsedResponse.action.type,
+          path: parsedResponse.action.path
+        }
+      }
+    } catch (e) {
+      // 非 JSON 格式，保持原样
+    }
+
     agentStatus.value = ''
     streamBuffer.value = ''
 
@@ -528,6 +583,24 @@ const scrollToBottom = () => {
   display: block;
   content: '';
   margin-top: 4px;
+}
+
+.nav-action {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nav-action :deep(.el-button) {
+  background: linear-gradient(135deg, var(--gold-primary), var(--gold-secondary));
+  border: none;
+  color: #000;
+  font-size: 12px;
+  padding: 4px 12px;
+}
+
+.nav-action :deep(.el-button:hover) {
+  opacity: 0.9;
 }
 
 .chat-actions {
