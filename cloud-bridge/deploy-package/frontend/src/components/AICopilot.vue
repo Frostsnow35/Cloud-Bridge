@@ -35,9 +35,9 @@
             </div>
             <div class="content" v-if="msg.role === 'ai'">
               <div v-html="renderMarkdown(msg.text)"></div>
-              <div v-if="msg.action" class="nav-action">
-                <el-button type="primary" size="small" @click="navigateTo(msg.action.path || msg.action.payload?.path)">
-                  点击跳转 → {{ getPathName(msg.action.path || msg.action.payload?.path) }}
+              <div v-if="msg.action && (msg.action.path || msg.action.payload?.path)" class="nav-action">
+                <el-button type="primary" size="small" @click="navigateTo(msg.action.path || msg.action.payload!.path!)">
+                  点击跳转 → {{ getPathName(msg.action.path || msg.action.payload!.path!) }}
                 </el-button>
               </div>
             </div>
