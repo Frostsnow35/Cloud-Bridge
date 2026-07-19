@@ -36,8 +36,8 @@
             <div class="content" v-if="msg.role === 'ai'">
               <div v-html="renderMarkdown(msg.text)"></div>
               <div v-if="msg.action" class="nav-action">
-                <el-button type="primary" size="small" @click="navigateTo(msg.action.path)">
-                  点击跳转 → {{ getPathName(msg.action.path) }}
+                <el-button type="primary" size="small" @click="navigateTo(msg.action.path || msg.action.payload?.path)">
+                  点击跳转 → {{ getPathName(msg.action.path || msg.action.payload?.path) }}
                 </el-button>
               </div>
             </div>
@@ -139,7 +139,11 @@ onUnmounted(() => {
 
 interface Action {
   type: string;
-  path: string;
+  path?: string;
+  payload?: {
+    path?: string;
+    query?: Record<string, string>;
+  };
 }
 
 interface Message {
@@ -287,10 +291,11 @@ const sendMessage = async () => {
       if (parsedResponse.reply) {
         messages.value[aiMsgIndex].text = parsedResponse.reply
       }
-      if (parsedResponse.action && parsedResponse.action.type === 'NAVIGATE' && parsedResponse.action.path) {
+      if (parsedResponse.action && parsedResponse.action.type === 'NAVIGATE') {
         messages.value[aiMsgIndex].action = {
           type: parsedResponse.action.type,
-          path: parsedResponse.action.path
+          path: parsedResponse.action.path || parsedResponse.action.payload?.path,
+          payload: parsedResponse.action.payload
         }
       }
     } catch (e) {

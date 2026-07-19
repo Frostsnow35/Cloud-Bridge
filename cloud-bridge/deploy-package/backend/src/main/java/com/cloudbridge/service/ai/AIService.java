@@ -851,13 +851,13 @@ public class AIService {
             "3. 如果用户询问具体功能操作（如\"怎么看政策\"），提供操作指引并返回导航路径\n" +
             "4. 回复简洁，3-5句话\n\n" +
             "**输出格式**（严格返回JSON字符串，不要包含Markdown标记）：\n" +
-            "{\"intent\": \"NAVIGATE|GUIDANCE|CHAT\", \"reply\": \"回复内容\", \"action\": {\"type\": \"NAVIGATE\", \"path\": \"/目标路径\"}}\n\n" +
+            "{\"intent\": \"NAVIGATE|GUIDANCE|CHAT\", \"reply\": \"回复内容\", \"action\": {\"type\": \"NAVIGATE\", \"payload\": {\"path\": \"/目标路径\"}}}\n\n" +
             "用户消息：\"%s\"", safeMsg
         );
 
         AIRequest request = new AIRequest();
         request.setModel(modelName);
-        request.setTemperature(0.7);
+        request.setTemperature(0.3);
         request.setMessages(Arrays.asList(
             new AIRequest.Message("system", "你是云转桥平台智能助手。只回答问题，不执行匹配。根据用户问题返回结构化JSON。"),
             new AIRequest.Message("user", prompt)
@@ -866,7 +866,7 @@ public class AIService {
         try {
             return callAI(request);
         } catch (Exception e) {
-            return "{\"intent\": \"CHAT\", \"reply\": \"你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。\", \"action\": null}";
+            return fallbackChatIntent(message);
         }
     }
 
