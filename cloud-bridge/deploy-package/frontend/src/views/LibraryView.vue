@@ -42,13 +42,17 @@
             <div v-if="category === 'policies'" class="resource-card policy-card">
               <div class="card-header">
                 <el-tag size="small" type="warning">{{ item.policyType }}</el-tag>
-                <span class="date">{{ item.publishDate }}</span>
+                <span class="date">{{ item.updateFrequency || item.publishDate }}</span>
               </div>
               <h3 class="card-title">{{ item.title }}</h3>
               <div class="card-meta">
                 <span><el-icon><OfficeBuilding /></el-icon> {{ item.department }}</span>
               </div>
               <p class="card-desc">{{ truncateText(item.content, 120) }}</p>
+              <div class="policy-info-row">
+                <el-tag v-if="item.openType" size="small" type="success">{{ item.openType }}</el-tag>
+                <el-tag v-if="item.dataFormat" size="small" type="primary">{{ item.dataFormat }}</el-tag>
+              </div>
               <div class="card-footer">
                 <el-tag v-for="tag in item.industry" :key="tag" size="small" effect="plain">{{ tag }}</el-tag>
               </div>
@@ -490,5 +494,12 @@ watch(() => route.params.category, () => {
   color: #a0a0a0;
   line-height: 1.8;
   margin: 0 0 16px 0;
+}
+
+.policy-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 </style>

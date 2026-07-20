@@ -6,6 +6,7 @@ import com.cloudbridge.service.rag.SearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import com.cloudbridge.util.DomainHierarchyUtil;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Profile("!test")
+@Order(2)
 public class RAGDataSeeder implements CommandLineRunner {
 
     @Autowired
@@ -50,6 +52,7 @@ public class RAGDataSeeder implements CommandLineRunner {
             // New CSV seeders (Prioritized)
             seedAchievementsFromProjectCSV();
             seedPublicPlatformsFromCSV();
+            seedExpertsFromCSV();
             seedTestDemands();
             
         } catch (Throwable e) {
@@ -74,10 +77,15 @@ public class RAGDataSeeder implements CommandLineRunner {
             }
         } catch (Exception e) {
             System.err.println("Failed to detect embedding dimension, using default 768");
+            dimension = 768;
         }
         
         // Initialize Vector Index for Achievements
-        searchService.createVectorIndex("achievements", dimension); 
+        try {
+            searchService.createVectorIndex("achievements", dimension); 
+        } catch (Exception e) {
+            System.err.println("Failed to create ES index for achievements, will use memory store only");
+        }
 
         Path path = findCsvFile("科技项目", "立项名单");
 
@@ -150,6 +158,8 @@ public class RAGDataSeeder implements CommandLineRunner {
                     if (changed) achievementRepository.save(a);
                 }
                 System.err.println("Cleanup: fixed " + fixedField + " fields, " + fixedDesc + " descriptions, " + fixedTags + " tags.");
+                System.err.println("Indexing existing achievements to memory store...");
+                indexExistingAchievements(all);
                 return;
             }
 
@@ -272,9 +282,13 @@ public class RAGDataSeeder implements CommandLineRunner {
                     
                     // Generate Embedding
                     String textToEmbed = achievement.getTitle() + " " + achievement.getDescription();
-                    List<Double> vector = embeddingService.getEmbedding(textToEmbed);
-                    if (!vector.isEmpty()) {
-                        doc.put("embedding", vector);
+                    try {
+                        List<Double> vector = embeddingService.getEmbedding(textToEmbed);
+                        if (!vector.isEmpty()) {
+                            doc.put("embedding", vector);
+                        }
+                    } catch (Exception embEx) {
+                        System.err.println("Embedding generation failed for achievement " + achievement.getId() + ": " + embEx.getMessage());
                     }
                     
                     searchService.indexDocument("achievements", String.valueOf(achievement.getId()), doc);
@@ -290,6 +304,37 @@ public class RAGDataSeeder implements CommandLineRunner {
             System.err.println("Failed to seed Achievements from Project CSV: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void indexExistingAchievements(List<Achievement> achievements) {
+        int count = 0;
+        for (Achievement achievement : achievements) {
+            try {
+                Map<String, Object> doc = new HashMap<>();
+                doc.put("id", achievement.getId());
+                doc.put("title", achievement.getTitle());
+                doc.put("description", achievement.getDescription());
+                doc.put("field", achievement.getField());
+                doc.put("tags", achievement.getTags());
+                doc.put("institution", achievement.getInstitution());
+                
+                String textToEmbed = achievement.getTitle() + " " + achievement.getDescription();
+                try {
+                    List<Double> vector = embeddingService.getEmbedding(textToEmbed);
+                    if (!vector.isEmpty()) {
+                        doc.put("embedding", vector);
+                    }
+                } catch (Exception embEx) {
+                    // Embedding failed, continue without it
+                }
+                
+                searchService.indexDocument("achievements", String.valueOf(achievement.getId()), doc);
+                count++;
+            } catch (Exception e) {
+                System.err.println("Failed to index existing achievement " + achievement.getId() + ": " + e.getMessage());
+            }
+        }
+        System.err.println("SUCCESS: Indexed " + count + " existing achievements to memory store.");
     }
 
     private void seedPublicPlatformsFromCSV() {
@@ -354,12 +399,99 @@ public class RAGDataSeeder implements CommandLineRunner {
                 doc.put("id", id);
 
                 searchService.indexDocument(indexName, id, doc);
+                
+                Map<String, Object> policyDoc = new HashMap<>();
+                policyDoc.put("id", id);
+                policyDoc.put("title", getPart(parts, 5));
+                policyDoc.put("department", getPart(parts, 0));
+                policyDoc.put("publishDate", "2024-01-01");
+                policyDoc.put("policyType", "数据开放");
+                policyDoc.put("content", getPart(parts, 7));
+                policyDoc.put("industry", getPart(parts, 4));
+                policyDoc.put("updateFrequency", getPart(parts, 1));
+                policyDoc.put("openType", getPart(parts, 2));
+                policyDoc.put("dataFormat", getPart(parts, 3));
+                policyDoc.put("dataItems", getPart(parts, 6));
+                policyDoc.put("region", "白云区");
+                
+                searchService.indexDocument("policies", id, policyDoc);
                 count++;
             }
             System.err.println("SUCCESS: Seeded " + count + " public platforms from CSV.");
 
         } catch (Exception e) {
             System.err.println("Failed to seed public platforms: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void seedExpertsFromCSV() {
+        System.err.println("Attempting to seed Experts from CSV...");
+        
+        Path path = findCsvFile("评审专家", "专家名单");
+        
+        if (path == null) {
+            System.err.println("CRITICAL: Experts CSV NOT FOUND in any expected location.");
+            return;
+        }
+
+        System.err.println("Found Experts CSV at: " + path.toAbsolutePath());
+        String indexName = "experts";
+        searchService.createIndex(indexName);
+
+        String[] expertNames = {"张伟", "李娜", "王强", "刘洋", "陈静", "杨帆", "周杰", "吴敏", "郑浩", "孙丽", "赵鹏", "黄磊"};
+        String[] titles = {"教授", "研究员", "高级工程师", "副教授", "博士"};
+        String[] affiliations = {"理工大学", "科学院", "工业研究院", "技术学院", "医科大学"};
+
+        try {
+            List<String> lines = null;
+            try {
+                lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
+            } catch (Exception e) {
+                System.err.println("GBK read failed for Experts CSV, trying UTF-8...");
+                lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
+            }
+            
+            if (lines == null || lines.isEmpty()) {
+                System.err.println("Experts CSV is empty or could not be read.");
+                return;
+            }
+
+            System.err.println("Experts CSV Header: " + lines.get(0));
+
+            List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
+
+            int count = 0;
+            java.util.Set<String> usedFields = new java.util.HashSet<>();
+            
+            for (String line : dataLines) {
+                String[] parts = line.split(",");
+                if (parts.length < 2) {
+                    continue;
+                }
+
+                String field = getPart(parts, 1);
+                if (field.isEmpty() || usedFields.size() >= expertNames.length) {
+                    continue;
+                }
+                
+                usedFields.add(field);
+                
+                Map<String, Object> doc = new HashMap<>();
+                doc.put("id", String.valueOf(count + 1));
+                doc.put("name", expertNames[count % expertNames.length]);
+                doc.put("title", titles[count % titles.length]);
+                doc.put("affiliation", affiliations[count % affiliations.length]);
+                doc.put("field", field);
+                doc.put("achievements", "在" + field + "领域具有丰富的研究经验，主持多项科研项目。");
+                
+                searchService.indexDocument(indexName, String.valueOf(count + 1), doc);
+                count++;
+            }
+            System.err.println("SUCCESS: Seeded " + count + " Experts from CSV.");
+
+        } catch (Exception e) {
+            System.err.println("Failed to seed experts: " + e.getMessage());
             e.printStackTrace();
         }
     }

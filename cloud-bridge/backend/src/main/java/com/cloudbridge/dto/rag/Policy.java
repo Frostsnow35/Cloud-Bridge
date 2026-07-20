@@ -15,6 +15,10 @@ public class Policy {
     private String supportContent;
     private String deadline;
     private String sourceUrl;
+    private String updateFrequency;
+    private String openType;
+    private String dataFormat;
+    private String dataItems;
 
     public String getId() {
         return id;
@@ -110,5 +114,37 @@ public class Policy {
 
     public void setSourceUrl(String sourceUrl) {
         this.sourceUrl = sourceUrl;
+    }
+
+    public String getUpdateFrequency() {
+        return updateFrequency;
+    }
+
+    public void setUpdateFrequency(String updateFrequency) {
+        this.updateFrequency = updateFrequency;
+    }
+
+    public String getOpenType() {
+        return openType;
+    }
+
+    public void setOpenType(String openType) {
+        this.openType = openType;
+    }
+
+    public String getDataFormat() {
+        return dataFormat;
+    }
+
+    public void setDataFormat(String dataFormat) {
+        this.dataFormat = dataFormat;
+    }
+
+    public String getDataItems() {
+        return dataItems;
+    }
+
+    public void setDataItems(String dataItems) {
+        this.dataItems = dataItems;
     }
 }

@@ -22,22 +22,42 @@
           <el-divider />
           <div class="policy-article-body">
             <p class="article-paragraph">{{ item.content || item.description || '无内容' }}</p>
-            <!-- Mock article content for richer display -->
+            
+            <div v-if="item.dataItems" class="data-items-section">
+              <h2>数据项</h2>
+              <p>{{ item.dataItems }}</p>
+            </div>
+            
+            <div class="policy-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">更新频率</span>
+                <span class="meta-value">{{ item.updateFrequency || '未知' }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">开放属性</span>
+                <el-tag :type="item.openType === '无条件开放' ? 'success' : 'warning'">{{ item.openType || '未知' }}</el-tag>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">数据格式</span>
+                <span class="meta-value">{{ item.dataFormat || '未知' }}</span>
+              </div>
+            </div>
+            
             <div class="mock-article-content">
-              <h2>一、政策背景</h2>
-              <p>为深入贯彻落实国家关于科技创新发展的战略部署，加快推进科技成果转化，促进产业高质量发展，特制定本措施。</p>
+              <h2>一、数据说明</h2>
+              <p>{{ item.content || '该数据为公共数据开放计划的一部分，由相关部门负责维护和更新。' }}</p>
               
               <h2>二、主要内容</h2>
-              <p>本政策围绕{{ item.title || '相关政策' }}，从资金支持、人才保障、平台建设等多个维度提出具体举措。鼓励企业加大研发投入，支持高校与科研机构开展联合攻关。</p>
+              <p>本数据集包含{{ item.dataItems || '相关数据项' }}，为{{ item.region || '白云区' }}公共数据开放计划的重要组成部分。</p>
               
-              <h2>三、支持标准</h2>
-              <p>对符合条件的项目，根据其技术水平、市场前景等因素，给予相应的资金补贴、税收优惠和融资支持。具体支持标准以实施细则为准。</p>
+              <h2>三、数据用途</h2>
+              <p>数据开放目的在于促进数据共享与利用，支持企业创新、学术研究和公众服务。符合条件的单位和个人可按规定获取和使用数据。</p>
               
-              <h2>四、申报流程</h2>
-              <p>符合条件的单位可向主管部门提交申报材料，经专家评审、公示后确定支持对象。申报时间和具体要求以年度征集通知为准。</p>
+              <h2>四、获取方式</h2>
+              <p>可通过白云区政府数据开放平台获取相关数据。具体获取流程和要求以官方发布为准。</p>
               
-              <h2>五、附则</h2>
-              <p>本措施自发布之日起施行，有效期三年。解释权归发布单位所有。如遇国家政策调整，按新政策执行。</p>
+              <h2>五、更新说明</h2>
+              <p>数据更新频率为{{ item.updateFrequency || '不定时' }}，请关注最新发布信息。</p>
             </div>
           </div>
           <div class="article-source">
@@ -475,6 +495,53 @@ onMounted(() => {
   line-height: 2;
   margin-bottom: 20px;
   text-indent: 2em;
+}
+
+.data-items-section {
+  background: #252525;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.data-items-section h2 {
+  font-size: 18px;
+  color: #FFD700;
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.data-items-section p {
+  font-size: 15px;
+  color: #ccc;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.policy-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #252525;
+  border-radius: 8px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.meta-label {
+  font-size: 13px;
+  color: #888;
+}
+
+.meta-value {
+  font-size: 15px;
+  color: #fff;
 }
 
 .article-source {

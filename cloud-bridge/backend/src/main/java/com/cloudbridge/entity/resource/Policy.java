@@ -41,4 +41,9 @@ public class Policy {
 
     private String deadline;
     private String sourceUrl;
+
+    private String updateFrequency;
+    private String openType;
+    private String dataFormat;
+    private String dataItems;
 }
