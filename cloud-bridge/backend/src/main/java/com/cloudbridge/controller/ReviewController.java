@@ -5,10 +5,8 @@ import com.cloudbridge.entity.Review;
 import com.cloudbridge.entity.User;
 import com.cloudbridge.repository.BidRepository;
 import com.cloudbridge.repository.ReviewRepository;
-import com.cloudbridge.service.BlockchainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,9 +23,6 @@ public class ReviewController {
 
     @Autowired
     private BidRepository bidRepository;
-
-    @Autowired
-    private BlockchainService blockchainService;
 
     /**
      * @brief 专家提交评审意见
@@ -55,20 +50,6 @@ public class ReviewController {
                     
                     reviewRequest.setBid(bid);
                     reviewRequest.setReviewerId(reviewerId);
-
-                    // 3. 区块链存证
-                    try {
-                        String reviewContent = "Reviewer:" + reviewerId + "|Bid:" + bidId + "|Score:" + reviewRequest.getScore() + "|Comment:" + reviewRequest.getComment();
-                        String hash = DigestUtils.md5DigestAsHex(reviewContent.getBytes());
-                        // 存证元数据包含类型和关联ID
-                        String metadata = String.format("{\"type\":\"REVIEW\",\"bidId\":%d,\"score\":%d}", bidId, reviewRequest.getScore());
-                        String txHash = blockchainService.storeEvidence(hash, metadata);
-                        reviewRequest.setTxHash(txHash);
-                    } catch (Exception e) {
-                        System.err.println("Failed to store review on blockchain: " + e.getMessage());
-                        // 存证失败是否阻断业务？根据“全流程固化”要求，建议阻断或标记。这里暂且允许通过但无hash
-                    }
-
                     Review savedReview = reviewRepository.save(reviewRequest);
                     return ResponseEntity.ok(savedReview);
                 })

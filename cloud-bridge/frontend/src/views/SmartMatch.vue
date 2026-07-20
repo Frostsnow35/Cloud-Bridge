@@ -4,7 +4,7 @@
       <!-- Search Section -->
       <div :class="['search-hero', { 'is-collapsed': hasSearched }]">
         <h2 v-if="!hasSearched" class="hero-title">AI 智能匹配引擎</h2>
-        <p v-if="!hasSearched" class="subtitle">输入技术需求，DeepSeek 大模型为您精准匹配全球成果</p>
+        <p v-if="!hasSearched" class="subtitle">输入技术需求，AI 大模型为您精准匹配全球成果</p>
         
         <div class="search-box-wrapper">
           <div class="input-container">

@@ -106,38 +106,6 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="存证管理" name="evidence">
-          <div class="tab-content">
-            <div class="toolbar">
-              <el-button type="primary" :icon="Refresh" circle @click="fetchEvidence" :loading="loading.evidence" />
-            </div>
-
-            <el-table :data="evidenceList" v-loading="loading.evidence" style="width: 100%" empty-text="暂无存证记录">
-              <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column prop="hash" label="数据哈希" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="txHash" label="交易哈希" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="evidenceType" label="类型" width="120">
-                <template #default="scope">
-                  <el-tag>{{ scope.row.evidenceType || 'DEFAULT' }}</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="ownerId" label="用户ID" width="100" />
-              <el-table-column prop="createdAt" label="存证时间" width="180">
-                <template #default="scope">
-                  {{ formatDate(scope.row.createdAt) }}
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="150" fixed="right">
-                <template #default="scope">
-                  <el-button size="small" type="primary" link @click="viewOnChain(scope.row.txHash)">
-                    查看链上详情
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </el-tab-pane>
-
         <el-tab-pane label="资源库管理" name="libraries">
           <div class="tab-content">
             <div class="toolbar">
@@ -367,7 +335,6 @@ const userStore = useUserStore()
 const activeTab = ref('demands')
 const pendingDemands = ref([])
 const pendingAchievements = ref([])
-const evidenceList = ref([])
 
 const stats = reactive({
   totalDemands: 0,
@@ -380,7 +347,6 @@ const stats = reactive({
 const loading = reactive({
   demands: false,
   achievements: false,
-  evidence: false,
   library: false
 })
 
@@ -424,30 +390,11 @@ const fetchAchievements = async () => {
   }
 }
 
-const fetchEvidence = async () => {
-  loading.evidence = true
-  try {
-    const res = await axios.get('/api/evidence/list')
-    evidenceList.value = res.data
-  } catch (error) {
-    console.error('Failed to fetch evidence list:', error)
-    ElMessage.error('获取存证记录失败')
-  } finally {
-    loading.evidence = false
-  }
-}
-
-const viewOnChain = (txHash: string) => {
-  window.open(`https://fisco-bcos-browser.example.com/tx/${txHash}`, '_blank')
-}
-
 const handleTabClick = () => {
   if (activeTab.value === 'demands') {
     fetchDemands()
   } else if (activeTab.value === 'achievements') {
     fetchAchievements()
-  } else if (activeTab.value === 'evidence') {
-    fetchEvidence()
   } else if (activeTab.value === 'libraries') {
     fetchLibraryCategories()
   }

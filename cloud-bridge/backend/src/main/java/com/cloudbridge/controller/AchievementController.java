@@ -15,9 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
-import com.cloudbridge.service.BlockchainService;
-import org.springframework.util.DigestUtils;
-
 @RestController
 @RequestMapping("/api/achievements")
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -25,9 +22,6 @@ public class AchievementController {
 
     @Autowired
     private AchievementRepository achievementRepository;
-
-    @Autowired
-    private BlockchainService blockchainService;
 
     @Autowired
     private com.cloudbridge.service.ai.AIService aiService;
@@ -134,23 +128,6 @@ public class AchievementController {
         return achievementRepository.findById(id)
                 .map(achievement -> {
                     achievement.setStatus(status);
-                    
-                    // Blockchain Evidence for Audit
-                    try {
-                        String content = "Audit:" + status + "|Achievement:" + id + "|Admin:" + request.getAttribute("userId");
-                        String hash = DigestUtils.md5DigestAsHex(content.getBytes());
-                        String txHash = blockchainService.storeEvidence(hash, "{\"type\":\"ACHIEVEMENT_AUDIT\",\"achievementId\":" + id + ",\"status\":\"" + status + "\"}");
-                        // Ideally store in AuditLog or update achievement txHash if it represents current state proof
-                        // For MVP, let's assume we might want to prove the approval
-                        if (status == Achievement.Status.PUBLISHED) {
-                             // Maybe store as property if entity supports it, or just return it.
-                             // Achievement entity doesn't have txHash field yet? Let's check or add it.
-                             // If not, we just store it on chain.
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Failed to store audit on blockchain: " + e.getMessage());
-                    }
-                    
                     return ResponseEntity.ok(achievementRepository.save(achievement));
                 })
                 .orElse(ResponseEntity.notFound().build());

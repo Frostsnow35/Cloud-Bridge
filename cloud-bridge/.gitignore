@@ -24,3 +24,7 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Elasticsearch
+backend/data/elasticsearch/
+deploy-package/backend/data/elasticsearch/

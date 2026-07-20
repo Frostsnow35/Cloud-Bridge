@@ -3,7 +3,6 @@ package com.cloudbridge.controller;
 import com.cloudbridge.entity.Demand;
 import com.cloudbridge.repository.BidRepository;
 import com.cloudbridge.repository.DemandRepository;
-import com.cloudbridge.service.BlockchainService;
 import javax.validation.Valid;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
@@ -12,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,9 +30,6 @@ public class DemandController {
 
     @Autowired
     private BidRepository bidRepository;
-
-    @Autowired
-    private BlockchainService blockchainService;
 
     /**
      * @brief 获取平台热搜风向标
@@ -109,18 +104,6 @@ public class DemandController {
         demand.setOwnerId(userId);
         demand.setStatus(Demand.Status.PENDING_REVIEW);
         sanitizeDemand(demand);
-        
-        // Blockchain Evidence for Creation (Optional at this stage, but good for "Full Process")
-        // Usually creation is just a draft, but here we submit for review.
-        try {
-            String content = "Owner:" + userId + "|Title:" + demand.getTitle() + "|Budget:" + demand.getBudget();
-            String hash = DigestUtils.md5DigestAsHex(content.getBytes());
-            String txHash = blockchainService.storeEvidence(hash, "{\"type\":\"DEMAND_CREATE\",\"title\":\"" + demand.getTitle() + "\"}");
-            demand.setTxHash(txHash);
-        } catch (Exception e) {
-            System.err.println("Failed to store demand creation on blockchain: " + e.getMessage());
-        }
-
         return demandRepository.save(demand);
     }
     
@@ -188,17 +171,6 @@ public class DemandController {
                     bidRequest.setDemand(demand);
                     bidRequest.setBidderId(bidderId);
                     bidRequest.setStatus(com.cloudbridge.entity.Bid.Status.PENDING);
-                    
-                    // 区块链存证：固化投标行为
-                    try {
-                        String bidContent = "Bidder:" + bidderId + "|Proposal:" + bidRequest.getProposal() + "|Quote:" + bidRequest.getQuote();
-                        String hash = org.springframework.util.DigestUtils.md5DigestAsHex(bidContent.getBytes());
-                        String txHash = blockchainService.storeEvidence(hash, "{\"type\":\"BID\",\"demandId\":" + id + "}");
-                        bidRequest.setTxHash(txHash);
-                    } catch (Exception e) {
-                        System.err.println("Failed to store bid on blockchain: " + e.getMessage());
-                    }
-
                     return ResponseEntity.ok(bidRepository.save(bidRequest));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -263,22 +235,6 @@ public class DemandController {
         return demandRepository.findById(id)
                 .map(demand -> {
                     demand.setStatus(status);
-                    
-                    // Blockchain Evidence for Audit
-                    try {
-                        String content = "Audit:" + status + "|Demand:" + id + "|Admin:" + request.getAttribute("userId");
-                        String hash = DigestUtils.md5DigestAsHex(content.getBytes());
-                        String txHash = blockchainService.storeEvidence(hash, "{\"type\":\"DEMAND_AUDIT\",\"demandId\":" + id + ",\"status\":\"" + status + "\"}");
-                        // We might overwrite txHash or store it in a separate AuditLog. 
-                        // For MVP, if approved, update demand's txHash to reflect "Published" state? 
-                        // Or just fire and forget. Let's fire and forget or log it.
-                        // Ideally we should have an AuditLog entity.
-                        // For now, let's just update the demand's txHash to the LATEST event.
-                        demand.setTxHash(txHash);
-                    } catch (Exception e) {
-                        System.err.println("Failed to store audit on blockchain: " + e.getMessage());
-                    }
-
                     return ResponseEntity.ok(demandRepository.save(demand));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -301,17 +257,6 @@ public class DemandController {
                     }
                     
                     demand.setStatus(Demand.Status.COMPLETED);
-                    
-                    // Blockchain Evidence for Completion (Acceptance)
-                    try {
-                        String content = "Complete:" + id + "|Owner:" + currentUserId + "|Time:" + System.currentTimeMillis();
-                        String hash = DigestUtils.md5DigestAsHex(content.getBytes());
-                        String txHash = blockchainService.storeEvidence(hash, "{\"type\":\"DEMAND_COMPLETE\",\"demandId\":" + id + "}");
-                        demand.setTxHash(txHash);
-                    } catch (Exception e) {
-                        System.err.println("Failed to store completion on blockchain: " + e.getMessage());
-                    }
-                    
                     return ResponseEntity.ok(demandRepository.save(demand));
                 })
                 .orElse(ResponseEntity.notFound().build());

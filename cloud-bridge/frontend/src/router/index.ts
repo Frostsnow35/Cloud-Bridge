@@ -5,7 +5,6 @@ import Login from '../views/Login.vue'
 import Needs from '../views/Needs.vue'
 import Achievements from '../views/Achievements.vue'
 import SmartMatch from '../views/SmartMatch.vue'
-import Evidence from '../views/Evidence.vue'
 
 import AchievementDetail from '../views/AchievementDetail.vue'
 import ContactExpert from '../views/ContactExpert.vue'
@@ -144,11 +143,6 @@ const router = createRouter({
       name: 'match',
       component: SmartMatch
     },
-    {
-      path: '/evidence',
-      name: 'evidence',
-      component: Evidence
-    }
   ]
 })
 

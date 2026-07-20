@@ -816,33 +816,63 @@ public class AIService {
      * @return 领域大类名称
      */
     /**
-     * @brief 平台 QA 回复：只解答 Agent 身份/平台功能/使用指引问题
+     * @brief 平台 QA 回复：解答 Agent 身份/平台功能/使用指引问题
      * 如用户描述技术需求，引导前往智能匹配页面
      */
     public String platformQAReply(String message) {
         String safeMsg = message != null ? message.replace("%", "%%") : "";
 
+        String searchResults = "";
+        if (isTerminologyQuestion(message)) {
+            String keyword = extractKeyword(message);
+            if (keyword != null && !keyword.isEmpty()) {
+                try {
+                    List<String> results = searchService.search("achievements", keyword);
+                    searchResults = formatSearchResults("科技成果", results, 5);
+                } catch (Exception e) {
+                    System.err.println("Search failed for terminology: " + e.getMessage());
+                }
+            }
+        }
+
         String prompt = String.format(
-            "你是云转桥科技成果转化平台的智能助手，职责是解答关于平台的咨询问题。\n\n" +
-            "**平台功能**：\n" +
-            "1. 成果大厅 —— 浏览和搜索各类科技成果\n" +
-            "2. 智能匹配 —— 描述技术需求，AI 精准匹配科技成果和配套资源\n" +
-            "3. 政策库 —— 查询产业扶持政策和创新补贴\n" +
-            "4. 需求发布 —— 发布企业技术需求\n" +
-            "5. 供需大厅 —— 浏览技术供给和需求信息\n\n" +
+            "你是云转桥科技成果转化平台的智能助手，职责是解答用户问题。\n\n" +
+            "**平台功能详解**：\n" +
+            "1. **成果大厅** —— 浏览和搜索各类科技成果，支持按领域筛选，查看成果详情（技术描述、成熟度、应用场景、合作方式）\n" +
+            "2. **智能匹配** —— 描述技术需求，AI自动提取需求画像，进行多维度检索匹配，展示知识图谱可视化\n" +
+            "3. **政策库** —— 查询产业扶持政策和创新补贴，按领域/地区筛选，查看申请条件\n" +
+            "4. **专家库** —— 查找各领域技术专家和研究团队，查看研究方向和联系方式\n" +
+            "5. **资金库** —— 浏览科技金融产品、引导基金和贷款渠道\n" +
+            "6. **需求大厅** —— 发布企业技术需求，填写领域、应用场景、预算等信息\n" +
+            "7. **个人中心** —— 管理已发布的成果和需求、收藏的资源、消息和申请进度\n\n" +
+            "**常见操作指南**：\n" +
+            "- **发布成果**：点击导航栏「成果大厅」→「发布成果」→填写信息→提交审核\n" +
+            "- **发布需求**：点击导航栏「需求大厅」→「发布需求」→描述需求→提交\n" +
+            "- **智能匹配**：点击导航栏「智能匹配」→描述技术需求→系统自动匹配\n" +
+            "- **查找专家**：点击导航栏「资源库」→「专家库」→按领域筛选\n" +
+            "- **查找政策**：点击导航栏「资源库」→「政策库」→按领域/地区筛选\n" +
+            "- **收藏资源**：在资源详情页点击「收藏」按钮，收藏内容在个人中心「我的收藏」查看\n" +
+            "- **查看消息**：点击页面右上角消息图标或进入个人中心「消息」页签\n" +
+            "- **查看审核进度**：进入个人中心→「我的发布」页签查看审核状态\n\n" +
+            "%s" +
             "**回复规则**：\n" +
             "1. 如果用户问你是谁或打招呼，简单自我介绍并说明平台功能\n" +
-            "2. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面自行操作，不代为匹配\n" +
-            "3. 回复简洁，3-5句话，纯文本\n" +
-            "4. 需要引导时使用友好语气，如"您可以前往「智能匹配」页面..."\n\n" +
-            "用户消息：\"%s\"", safeMsg
+            "2. 如果用户询问具体操作步骤（如\"怎么发布成果\"），详细回答操作步骤\n" +
+            "3. 如果用户问\"xx是什么\"这类术语解释问题，结合搜索结果进行回答，解释术语定义、应用场景，并推荐相关成果\n" +
+            "4. 如果用户描述技术需求或想找技术，引导其前往【智能匹配】页面自行操作，不代为匹配\n" +
+            "5. 回复简洁明了，使用列表格式清晰展示步骤\n" +
+            "6. 需要引导时使用友好语气，如'您可以前往智能匹配页面...'\n" +
+            "7. 不要编造数据，只基于平台功能和搜索结果进行回答\n\n" +
+            "用户消息：\"%s\"", 
+            searchResults.isEmpty() ? "" : "**相关成果搜索结果**：\n" + searchResults + "\n\n",
+            safeMsg
         );
 
         AIRequest request = new AIRequest();
         request.setModel(modelName);
         request.setTemperature(0.7);
         request.setMessages(Arrays.asList(
-            new AIRequest.Message("system", "你是云转桥平台助手。只回答问题，不执行匹配。引导用户自行前往智能匹配页面。"),
+            new AIRequest.Message("system", "你是云转桥平台助手。回答平台功能、操作指南和技术术语解释问题，结合搜索结果提供专业回答。"),
             new AIRequest.Message("user", prompt)
         ));
 
@@ -851,6 +881,43 @@ public class AIService {
         } catch (Exception e) {
             return "你好！我是云转桥智能助手，可以帮你了解平台功能。如需智能匹配科技成果，请前往「智能匹配」页面进行操作。";
         }
+    }
+
+    private boolean isTerminologyQuestion(String message) {
+        if (message == null || message.isEmpty()) return false;
+        message = message.toLowerCase();
+        return message.matches(".*是什么|什么是.*|什么叫.*|解释.*|说明.*|定义.*|介绍.*");
+    }
+
+    private String extractKeyword(String message) {
+        if (message == null || message.isEmpty()) return null;
+        message = message.toLowerCase();
+        message = message.replace("是什么", "")
+                         .replace("什么是", "")
+                         .replace("什么叫", "")
+                         .replace("解释", "")
+                         .replace("说明", "")
+                         .replace("定义", "")
+                         .replace("介绍", "")
+                         .replace("一下", "")
+                         .replace("关于", "")
+                         .replace("吗", "")
+                         .replace("？", "")
+                         .replace("?", "")
+                         .trim();
+        return message.length() > 0 ? message : null;
+    }
+
+    private String formatSearchResults(String type, List<String> results, int limit) {
+        if (results == null || results.isEmpty()) {
+            return "- 暂无相关" + type + "数据\n";
+        }
+        StringBuilder sb = new StringBuilder();
+        int count = Math.min(results.size(), limit);
+        for (int i = 0; i < count; i++) {
+            sb.append("- ").append(results.get(i)).append("\n");
+        }
+        return sb.toString();
     }
 
     /**

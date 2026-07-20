@@ -6,10 +6,8 @@ import com.cloudbridge.entity.Demand;
 import com.cloudbridge.repository.BidRepository;
 import com.cloudbridge.repository.ContractRepository;
 import com.cloudbridge.repository.DemandRepository;
-import com.cloudbridge.service.BlockchainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,9 +27,6 @@ public class ContractController {
 
     @Autowired
     private BidRepository bidRepository;
-
-    @Autowired
-    private BlockchainService blockchainService;
 
     /**
      * @brief 为指定需求生成合同草稿
@@ -132,21 +127,6 @@ public class ContractController {
                     // Check if both signed
                     if (contract.getOwnerSignedAt() != null && contract.getBidderSignedAt() != null) {
                         contract.setStatus(Contract.Status.SIGNED);
-                        
-                        // Blockchain Evidence
-                        try {
-                            String contentHash = DigestUtils.md5DigestAsHex(contract.getContent().getBytes());
-                            String metadata = String.format("{\"type\":\"CONTRACT\",\"demandId\":%d,\"bidId\":%d,\"status\":\"SIGNED\"}", 
-                                    contract.getDemand().getId(), contract.getBid().getId());
-                            String txHash = blockchainService.storeEvidence(contentHash, metadata);
-                            contract.setTxHash(txHash);
-                        } catch (Exception e) {
-                            System.err.println("Failed to store contract on blockchain: " + e.getMessage());
-                        }
-                        
-                        // Update Demand Status to MATCHING (or COMPLETED? Let's keep MATCHING as in progress)
-                        // Or maybe move to COMPLETED if signing implies immediate effect for MVP?
-                        // Let's stick to MATCHING as "In Progress"
                     }
 
                     return ResponseEntity.ok(contractRepository.save(contract));

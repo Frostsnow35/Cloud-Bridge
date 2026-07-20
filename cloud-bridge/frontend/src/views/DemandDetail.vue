@@ -118,7 +118,6 @@
                     </template>
                     <el-button v-if="isAchievementUser" size="small" type="primary" @click="openReviewDialog(scope.row)">评审</el-button>
                     <el-button v-if="isOwner" size="small" type="warning" plain @click="openReviewListDialog(scope.row)">查看评审</el-button>
-                    <el-button v-if="scope.row.txHash" size="small" type="info" link @click="viewOnChain(scope.row.txHash)">链上核验</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -180,10 +179,6 @@
         <el-form-item label="我的报价">
           <el-input-number v-model="bidDialog.form.quote" :min="0" :step="1000" style="width: 100%" />
         </el-form-item>
-        <div class="blockchain-notice">
-          <el-icon><InfoFilled /></el-icon>
-          提交后，您的揭榜记录将自动同步至区块链，作为具备法律效力的存证凭证。
-        </div>
       </el-form>
       <template #footer>
         <el-button @click="bidDialog.visible = false">取消</el-button>
@@ -201,10 +196,6 @@
         <el-form-item label="评审意见" required>
           <el-input v-model="reviewDialog.form.comment" type="textarea" rows="4" placeholder="请输入专业的评审意见..." />
         </el-form-item>
-        <div class="blockchain-notice">
-          <el-icon><InfoFilled /></el-icon>
-          评审结果将上链存证，不可篡改。
-        </div>
       </el-form>
       <template #footer>
         <el-button @click="reviewDialog.visible = false">取消</el-button>
@@ -222,11 +213,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="comment" label="评审意见" show-overflow-tooltip />
-        <el-table-column label="存证" width="100">
-          <template #default="scope">
-             <el-button v-if="scope.row.txHash" size="small" type="info" link @click="viewOnChain(scope.row.txHash)">核验</el-button>
-          </template>
-        </el-table-column>
       </el-table>
     </el-dialog>
   </div>
@@ -235,7 +221,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch, computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Picture, InfoFilled } from '@element-plus/icons-vue'
+import { Picture } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../stores/user'
@@ -427,10 +413,6 @@ const getBidStatusText = (status: string) => {
     case 'COMPLETED': return '已完成'
     default: return status
   }
-}
-
-const viewOnChain = (txHash: string) => {
-  window.open(`https://fisco-bcos-browser.example.com/tx/${txHash}`, '_blank')
 }
 
 const openReviewDialog = (bid: any) => {
@@ -687,18 +669,6 @@ watch(() => route.params.id, (newId) => {
     font-size: 16px;
     color: var(--text-primary);
     font-weight: 500;
-}
-
-.blockchain-notice {
-  margin-top: 15px;
-  padding: 10px;
-  background: rgba(103, 194, 58, 0.1);
-  border-radius: 4px;
-  color: var(--el-color-success);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .ml-2 { margin-left: 8px; }
 </style>
