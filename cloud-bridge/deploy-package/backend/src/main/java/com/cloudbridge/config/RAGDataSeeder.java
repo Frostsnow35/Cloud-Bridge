@@ -50,10 +50,10 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("=== RAGDataSeeder STARTED ===");
         try {
             // New CSV seeders (Prioritized)
+            seedDemandsFromProjectCSV();
             seedAchievementsFromProjectCSV();
             seedPublicPlatformsFromCSV();
             seedExpertsFromCSV();
-            seedTestDemands();
             
         } catch (Throwable e) {
             System.err.println("RAG Data Seeding Failed (Non-critical): " + e.getMessage());
@@ -496,43 +496,70 @@ public class RAGDataSeeder implements CommandLineRunner {
         }
     }
 
-    private void seedTestDemands() {
-        System.err.println("Attempting to seed Derived Test Demands...");
+    private void seedDemandsFromProjectCSV() {
+        System.err.println("Attempting to seed Demands from Project List CSV...");
         
-        // 1. Clear existing demands
-        demandRepository.deleteAll();
+        Path path = findCsvFile("科技项目", "立项名单");
         
-        // 2. Fetch some achievements to base demands on
-        List<Achievement> achievements = achievementRepository.findAll();
-        if (achievements.isEmpty()) {
-            System.err.println("No achievements found. Skipping demand seeding.");
+        if (path == null) {
+            System.err.println("CRITICAL: Project List CSV NOT FOUND for Demand seeding.");
             return;
         }
-        
-        int count = 0;
-        // Pick up to 5 random achievements (or first 5)
-        for (int i = 0; i < Math.min(5, achievements.size()); i++) {
-            Achievement ach = achievements.get(i);
+
+        try {
+            List<String> lines = null;
+            try {
+                lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
+            } catch (Exception e) {
+                System.err.println("GBK read failed for Demand CSV, trying UTF-8...");
+                lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
+            }
             
-            // Create a matching demand
-            com.cloudbridge.entity.Demand demand = new com.cloudbridge.entity.Demand();
-            demand.setTitle("寻求" + ach.getTitle() + "相关技术合作");
-            demand.setDescription("我司正在寻找" + ach.getField() + "领域的解决方案，特别是关于" + ach.getTitle() + "的技术。希望与高校或科研机构合作。");
-            demand.setField(ach.getField());
-            demand.setBudget(new BigDecimal("500000")); // 500k budget
-            demand.setDeadline(java.time.LocalDate.now().plusMonths(3));
-            demand.setContactName("测试经理");
-            demand.setPhone("13800138000");
-            demand.setInstitution("某知名科技企业");
-            demand.setType(com.cloudbridge.entity.Demand.Type.TECHNOLOGY_ATTACK);
-            demand.setOwnerId(1L);
-            demand.setStatus(com.cloudbridge.entity.Demand.Status.PUBLISHED);
+            if (lines == null || lines.isEmpty()) {
+                System.err.println("Project CSV is empty.");
+                return;
+            }
+
+            demandRepository.deleteAll();
+            System.err.println("Cleared existing demands. Starting fresh seeding...");
+
+            List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
+            int count = 0;
             
-            demandRepository.save(demand);
-            count++;
+            for (String line : dataLines) {
+                String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+                if (parts.length < 4) continue; 
+                
+                String unit = getPart(parts, 0).replace("\"", ""); 
+                String level = getPart(parts, 1).replace("\"", ""); 
+                String title = getPart(parts, 3).replace("\"", ""); 
+                String batch = getPart(parts, 4).replace("\"", ""); 
+                String direction = getPart(parts, 5).replace("\"", ""); 
+                
+                if (title.isEmpty()) continue;
+
+                com.cloudbridge.entity.Demand demand = new com.cloudbridge.entity.Demand();
+                demand.setTitle("寻求" + title + "相关技术支持");
+                demand.setDescription("需求描述：" + batch + " | 支持方向：" + direction + " | 期望合作单位：" + unit);
+                demand.setField(inferDomain(title, direction));
+                demand.setBudget(new BigDecimal("100000"));
+                demand.setDeadline(java.time.LocalDate.now().plusMonths(6));
+                demand.setContactName(unit + "联系人");
+                demand.setPhone("13800138000");
+                demand.setInstitution(unit);
+                demand.setType(com.cloudbridge.entity.Demand.Type.TECHNOLOGY_ATTACK);
+                demand.setOwnerId(1L);
+                demand.setStatus(com.cloudbridge.entity.Demand.Status.PUBLISHED);
+                
+                demandRepository.save(demand);
+                count++;
+            }
+            System.err.println("SUCCESS: Seeded " + count + " Demands from Project List CSV.");
+            
+        } catch (Exception e) {
+            System.err.println("Failed to seed Demands from Project CSV: " + e.getMessage());
+            e.printStackTrace();
         }
-        
-        System.err.println("SUCCESS: Seeded " + count + " Test Demands derived from Achievements.");
     }
 
     private String getPart(String[] parts, int index) {
