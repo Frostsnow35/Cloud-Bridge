@@ -50,7 +50,8 @@ public class RAGDataSeeder implements CommandLineRunner {
         System.err.println("=== RAGDataSeeder STARTED ===");
         try {
             // New CSV seeders (Prioritized)
-            seedDemandsFromProjectCSV();
+            // Mock demands first: fast (no embedding), uses existing achievements
+            seedMockDemandsFromAchievements();
             seedAchievementsFromProjectCSV();
             seedPublicPlatformsFromCSV();
             seedExpertsFromCSV();
@@ -496,68 +497,87 @@ public class RAGDataSeeder implements CommandLineRunner {
         }
     }
 
-    private void seedDemandsFromProjectCSV() {
-        System.err.println("Attempting to seed Demands from Project List CSV...");
+    private void seedMockDemandsFromAchievements() {
+        System.err.println("Attempting to seed Mock Demands from Achievements...");
         
-        Path path = findCsvFile("科技项目", "立项名单");
-        
-        if (path == null) {
-            System.err.println("CRITICAL: Project List CSV NOT FOUND for Demand seeding.");
-            return;
-        }
-
         try {
-            List<String> lines = null;
-            try {
-                lines = Files.readAllLines(path, java.nio.charset.Charset.forName("GBK"));
-            } catch (Exception e) {
-                System.err.println("GBK read failed for Demand CSV, trying UTF-8...");
-                lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
-            }
-            
-            if (lines == null || lines.isEmpty()) {
-                System.err.println("Project CSV is empty.");
+            List<Achievement> achievements = achievementRepository.findAll();
+            if (achievements.isEmpty()) {
+                System.err.println("No achievements found. Skipping mock demand seeding.");
                 return;
             }
 
             demandRepository.deleteAll();
-            System.err.println("Cleared existing demands. Starting fresh seeding...");
+            System.err.println("Cleared existing demands. Generating mock demands for demo...");
 
-            List<String> dataLines = lines.stream().skip(1).collect(Collectors.toList());
+            // Mock demand templates: diversified types/budgets/deadlines for showcase
+            String[] demandPrefixes = {
+                "寻求", "希望合作开发", "急需", "诚邀合作", "拟委托研发"
+            };
+            String[] demandSuffixes = {
+                "相关技术支持", "的产业化方案", "的工艺优化", "的联合攻关", "的成果转化"
+            };
+            String[] demandInstitutions = {
+                "广州某科技企业", "白云区制造业企业", "粤港澳大湾区创新中心", "广州某上市公司", "白云区高新技术企业"
+            };
+            String[] demandContactNames = {
+                "李经理", "王总", "张工", "陈主任", "刘总监"
+            };
+            String[] demandDescTemplates = {
+                "我司在{field}领域有产业化需求，希望与高校或科研机构合作，围绕《{title}》开展技术攻关。",
+                "基于市场需要，现寻找{field}方向的解决方案，特别关注{title}相关成果的落地应用。",
+                "为提升产品竞争力，拟委托开展{title}相关研究，预期形成自主知识产权。",
+                "我司希望引进{title}相关技术，合作模式可灵活协商，包括联合研发或技术转让。",
+                "围绕产业链升级，急需{field}领域的技术支持，期望对接《{title}》成果团队。"
+            };
+            BigDecimal[] budgets = {
+                new BigDecimal("300000"), new BigDecimal("500000"), new BigDecimal("800000"),
+                new BigDecimal("1200000"), new BigDecimal("2000000")
+            };
+            int[] deadlineMonths = {3, 6, 9, 12, 18};
+            com.cloudbridge.entity.Demand.Type[] types = {
+                com.cloudbridge.entity.Demand.Type.TECHNOLOGY_ATTACK,
+                com.cloudbridge.entity.Demand.Type.NORMAL,
+                com.cloudbridge.entity.Demand.Type.REWARD
+            };
+
+            java.util.Random rnd = new java.util.Random(20260720L); // 固定种子保证可复现
+            int targetCount = Math.min(30, achievements.size());
             int count = 0;
-            
-            for (String line : dataLines) {
-                String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-                if (parts.length < 4) continue; 
-                
-                String unit = getPart(parts, 0).replace("\"", ""); 
-                String level = getPart(parts, 1).replace("\"", ""); 
-                String title = getPart(parts, 3).replace("\"", ""); 
-                String batch = getPart(parts, 4).replace("\"", ""); 
-                String direction = getPart(parts, 5).replace("\"", ""); 
-                
-                if (title.isEmpty()) continue;
+            java.util.Set<Integer> usedIndexes = new java.util.HashSet<>();
+
+            while (count < targetCount && usedIndexes.size() < achievements.size()) {
+                int idx = rnd.nextInt(achievements.size());
+                if (!usedIndexes.add(idx)) continue;
+                Achievement ach = achievements.get(idx);
+
+                String title = ach.getTitle();
+                String field = ach.getField() != null ? ach.getField() : "综合科技";
 
                 com.cloudbridge.entity.Demand demand = new com.cloudbridge.entity.Demand();
-                demand.setTitle("寻求" + title + "相关技术支持");
-                demand.setDescription("需求描述：" + batch + " | 支持方向：" + direction + " | 期望合作单位：" + unit);
-                demand.setField(inferDomain(title, direction));
-                demand.setBudget(new BigDecimal("100000"));
-                demand.setDeadline(java.time.LocalDate.now().plusMonths(6));
-                demand.setContactName(unit + "联系人");
+                demand.setTitle(demandPrefixes[rnd.nextInt(demandPrefixes.length)]
+                        + (title.length() > 20 ? title.substring(0, 20) + "..." : title)
+                        + demandSuffixes[rnd.nextInt(demandSuffixes.length)]);
+                String desc = demandDescTemplates[rnd.nextInt(demandDescTemplates.length)]
+                        .replace("{field}", field)
+                        .replace("{title}", title);
+                demand.setDescription(desc);
+                demand.setField(field);
+                demand.setBudget(budgets[rnd.nextInt(budgets.length)]);
+                demand.setDeadline(java.time.LocalDate.now().plusMonths(deadlineMonths[rnd.nextInt(deadlineMonths.length)]));
+                demand.setContactName(demandContactNames[rnd.nextInt(demandContactNames.length)]);
                 demand.setPhone("13800138000");
-                demand.setInstitution(unit);
-                demand.setType(com.cloudbridge.entity.Demand.Type.TECHNOLOGY_ATTACK);
+                demand.setInstitution(demandInstitutions[rnd.nextInt(demandInstitutions.length)]);
+                demand.setType(types[rnd.nextInt(types.length)]);
                 demand.setOwnerId(1L);
                 demand.setStatus(com.cloudbridge.entity.Demand.Status.PUBLISHED);
-                
+
                 demandRepository.save(demand);
                 count++;
             }
-            System.err.println("SUCCESS: Seeded " + count + " Demands from Project List CSV.");
-            
+            System.err.println("SUCCESS: Seeded " + count + " Mock Demands derived from Achievements.");
         } catch (Exception e) {
-            System.err.println("Failed to seed Demands from Project CSV: " + e.getMessage());
+            System.err.println("Failed to seed mock demands: " + e.getMessage());
             e.printStackTrace();
         }
     }
